@@ -35,3 +35,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .skill-card { cursor: pointer; }
 .skill-card:hover { border-color: #93c5fd; }
 .skill-name { font-weight: 700; }
+
+.skill-card.disabled { opacity: .5; cursor: not-allowed; }
+.skill-card.disabled:hover { border-color: #374151; }

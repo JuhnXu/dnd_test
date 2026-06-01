@@ -9,9 +9,10 @@ export class Renderer {
     this.skillSystem = skillSystem;
   }
 
-  render({ units, currentUnit, mode, selectedSkill }) {
+  render({ units, currentUnit, mode, selectedSkill, previewPath }) {
     this.drawBoard();
     this.drawHighlights(currentUnit, mode, selectedSkill);
+    this.drawPath(previewPath);
     this.drawUnits(units, currentUnit);
   }
 
@@ -66,6 +67,15 @@ export class Renderer {
     }
   }
 
+  drawPath(path) {
+    if (!path || path.length === 0) return;
+    const ctx = this.ctx;
+    for (const tile of path) {
+      ctx.fillStyle = "rgba(250, 204, 21, 0.32)";
+      ctx.fillRect(tile.x * TILE_SIZE + 14, tile.y * TILE_SIZE + 14, TILE_SIZE - 28, TILE_SIZE - 28);
+    }
+  }
+
   drawUnits(units, currentUnit) {
     const ctx = this.ctx;
     for (const unit of units) {
@@ -76,6 +86,12 @@ export class Renderer {
       ctx.arc(centerX, centerY, 23, 0, Math.PI * 2);
       ctx.fillStyle = unit.team === TEAM.PLAYER ? "#3b82f6" : "#ef4444";
       ctx.fill();
+      if (unit.isDefending) {
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#22c55e";
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      }
       if (unit === currentUnit) {
         ctx.lineWidth = 4;
         ctx.strokeStyle = "#facc15";

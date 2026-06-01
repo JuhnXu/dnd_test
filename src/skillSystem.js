@@ -1,70 +1,103 @@
 import { Dice } from "./dice.js";
 
 export class SkillSystem {
-  constructor(gridManager, skills) {
-    this.gridManager = gridManager;
-    this.skills = skills;
-  }
+  constructor(gridManager, skills) { this.gridManager = gridManager; this.skills = skills; }
+  setSkills(skills) { this.skills = skills; }
+  getSkill(skillId) { return this.skills.find(skill => skill.id === skillId) || null; }
+  getUnitSkills(unit) { return unit?.skills ? unit.skills.map(id => this.getSkill(id)).filter(Boolean) : []; }
+  getState(user, skill) { return user?.skillState?.[skill?.id] || null; }
 
-  setSkills(skills) {
-    this.skills = skills;
-  }
-
-  getSkill(skillId) {
-    return this.skills.find(skill => skill.id === skillId) || null;
-  }
-
-  getUnitSkills(unit) {
-    if (!unit?.skills) return [];
-    return unit.skills.map(id => this.getSkill(id)).filter(Boolean);
+  isValidTarget(user, target, skill) {
+    if (!user || !target || !skill || !user.isAlive || !target.isAlive) return false;
+    const targetType = skill.targetType || "enemy";
+    if (targetType === "self") return user === target;
+    if (targetType === "ally") return user.team === target.team;
+    if (targetType === "enemy") return user.team !== target.team;
+    return false;
   }
 
   canUseSkill(user, target, skill) {
-    if (!user || !target || !skill) return false;
-    if (!user.isAlive || !target.isAlive) return false;
-    if (user.team === target.team) return false;
+    if (!this.isValidTarget(user, target, skill)) return false;
     if (user.hasAttacked && skill.endsAttack) return false;
+    const state = this.getState(user, skill);
+    if (state) {
+      if (state.cooldownRemaining > 0) return false;
+      if (state.usesRemaining !== null && state.usesRemaining <= 0) return false;
+    }
     return this.gridManager.getDistance(user, target) <= skill.range;
   }
 
-  useSkill(user, target, skill) {
-    if (!this.canUseSkill(user, target, skill)) {
-      return { success: false, reason: "不能对该目标使用技能" };
-    }
+  getUnavailableReason(user, skill) {
+    const state = this.getState(user, skill);
+    if (!state) return "";
+    if (state.cooldownRemaining > 0) return `冷却中：${state.cooldownRemaining} 回合`;
+    if (state.usesRemaining !== null && state.usesRemaining <= 0) return "使用次数已耗尽";
+    if (user.hasAttacked && skill.endsAttack) return "本回合已用过动作";
+    return "";
+  }
 
+  spendSkill(user, skill) {
+    const state = this.getState(user, skill);
+    if (state) {
+      state.cooldownRemaining = skill.cooldown || 0;
+      if (state.usesRemaining !== null) state.usesRemaining -= 1;
+    }
+    if (skill.endsAttack) user.hasAttacked = true;
+  }
+
+  useSkill(user, target, skill) {
+    if (!this.canUseSkill(user, target, skill)) return { success: false, reason: "不能对该目标使用技能" };
+    if ((skill.type || "attack") === "heal") return this.useHeal(user, target, skill);
+    if (skill.type === "buff") return this.useBuff(user, target, skill);
+    return this.useAttackSkill(user, target, skill);
+  }
+
+  useHeal(user, target, skill) {
+    const before = target.hp;
+    const heal = Dice.rollDice(skill.healDice || "1d4");
+    target.heal(heal.total + (skill.healBonus || 0));
+    this.spendSkill(user, skill);
+    return { success: true, kind: "heal", type: "skill", skill, attacker: user, target, heal, amount: target.hp - before };
+  }
+
+  useBuff(user, target, skill) {
+    if (skill.statusEffect) target.addStatusEffect(skill.statusEffect);
+    this.spendSkill(user, skill);
+    return { success: true, kind: "buff", type: "skill", skill, attacker: user, target, statusEffect: skill.statusEffect };
+  }
+
+  useAttackSkill(user, target, skill) {
     const d20 = Dice.rollDie(20);
-    const attackBonus = user.attackBonus + (skill.attackBonusModifier || 0);
+    const attackBonus = user.effectiveAttackBonus + (skill.attackBonusModifier || 0);
     const naturalOne = d20 === 1;
     const critical = d20 === 20;
     const attackTotal = d20 + attackBonus;
-    const hit = critical || (!naturalOne && attackTotal >= target.ac);
-
-    const result = {
-      success: true,
-      type: "skill",
-      skill,
-      attacker: user,
-      target,
-      d20,
-      naturalOne,
-      critical,
-      attackBonus,
-      attackTotal,
-      targetAc: target.ac,
-      hit,
-      damage: null,
-      killed: false,
-    };
-
+    const targetAc = target.effectiveAc;
+    const hit = critical || (!naturalOne && attackTotal >= targetAc);
+    const result = { success: true, kind: "attack", type: "skill", skill, attacker: user, target, d20, naturalOne, critical, attackBonus, attackTotal, targetAc, hit, damage: null, killed: false, pushed: null, statusEffect: null };
     if (hit) {
       const damage = Dice.rollDice(skill.damageDice || user.damageDice, critical ? 2 : 1);
       damage.total += skill.damageBonus || 0;
       target.takeDamage(damage.total);
       result.damage = damage;
       result.killed = !target.isAlive;
+      if (skill.statusEffect && target.isAlive) { target.addStatusEffect(skill.statusEffect); result.statusEffect = skill.statusEffect; }
+      if (skill.push && target.isAlive) result.pushed = this.tryPush(user, target, skill.push);
     }
-
-    if (skill.endsAttack) user.hasAttacked = true;
+    this.spendSkill(user, skill);
     return result;
+  }
+
+  tryPush(user, target, distance) {
+    const dx = Math.sign(target.x - user.x);
+    const dy = Math.sign(target.y - user.y);
+    let moved = 0;
+    for (let i = 0; i < distance; i++) {
+      const nx = target.x + dx;
+      const ny = target.y + dy;
+      if (!this.gridManager.isInsideGrid(nx, ny) || this.gridManager.isBlocked(nx, ny) || this.gridManager.getUnitAt(nx, ny)) break;
+      target.x = nx; target.y = ny; moved++;
+    }
+    return moved;
   }
 }

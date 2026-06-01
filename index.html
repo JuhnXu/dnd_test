@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DND 战棋战斗 Demo v3</title>
+  <title>DND 战棋战斗 Demo v5</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
@@ -11,37 +11,24 @@
     <div class="board-wrap">
       <canvas id="battleCanvas" width="640" height="640"></canvas>
     </div>
-
     <aside class="panel">
-      <h1>DND 2D 战棋 Demo v3</h1>
-      <div class="hint">
-        v3 新增：技能系统与 JSON 数据配置。点击技能按钮后，再点击红色高亮敌人释放技能。
-      </div>
-
+      <h1>DND 2D 战棋 Demo v5</h1>
+      <div class="hint">v5 新增：状态效果、治疗、Buff 与位移技能。技能卡支持友军/自身/敌方目标。</div>
       <div class="status" id="status"></div>
-
       <div class="actions">
         <button id="moveBtn">移动模式</button>
         <button id="attackBtn">攻击模式</button>
         <button id="skillBtn">技能模式</button>
+        <button id="defendBtn">防御动作</button>
         <button id="endTurnBtn">结束回合</button>
         <button id="restartBtn">重新开始</button>
       </div>
-
-      <h2>技能</h2>
-      <div class="skill-list" id="skillList"></div>
-
-      <h2>先攻顺序</h2>
-      <div class="initiative-list" id="initiativeList"></div>
-
-      <h2>单位</h2>
-      <div class="unit-list" id="unitList"></div>
-
-      <h2>战斗日志</h2>
-      <div class="log" id="log"></div>
+      <h2>技能</h2><div class="skill-list" id="skillList"></div>
+      <h2>先攻顺序</h2><div class="initiative-list" id="initiativeList"></div>
+      <h2>单位</h2><div class="unit-list" id="unitList"></div>
+      <h2>战斗日志</h2><div class="log" id="log"></div>
     </aside>
   </div>
-
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>

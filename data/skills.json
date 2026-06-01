@@ -1,6 +1,8 @@
 [
-  { "id": "power_attack", "name": "猛力攻击", "description": "近战攻击，命中后额外 +2 伤害。", "range": 1, "attackBonusModifier": 0, "damageDice": "1d8+3", "damageBonus": 2, "endsAttack": true },
-  { "id": "aimed_shot", "name": "瞄准射击", "description": "远程攻击，射程 6 格，命中造成 1d8+3。", "range": 6, "attackBonusModifier": 0, "damageDice": "1d8+3", "damageBonus": 0, "endsAttack": true },
-  { "id": "dirty_stab", "name": "卑劣刺击", "description": "哥布林近战技能，命中后额外 +1 伤害。", "range": 1, "attackBonusModifier": 0, "damageDice": "1d6+2", "damageBonus": 1, "endsAttack": true },
-  { "id": "heavy_cleave", "name": "重劈", "description": "兽人近战重击，命中后额外 +2 伤害。", "range": 1, "attackBonusModifier": 0, "damageDice": "1d12+3", "damageBonus": 2, "endsAttack": true }
+  { "id": "power_attack", "name": "猛力攻击", "type": "attack", "targetType": "enemy", "description": "近战攻击，命中后额外 +2 伤害。", "range": 1, "attackBonusModifier": 0, "damageDice": "1d8+3", "damageBonus": 2, "endsAttack": true, "cooldown": 2, "maxUses": 3 },
+  { "id": "second_wind", "name": "复苏之息", "type": "heal", "targetType": "self", "description": "治疗自己 1d10+2。", "range": 0, "healDice": "1d10", "healBonus": 2, "endsAttack": true, "cooldown": 3, "maxUses": 2 },
+  { "id": "aimed_shot", "name": "瞄准射击", "type": "attack", "targetType": "enemy", "description": "远程攻击，射程 6 格，命中造成 1d8+3。", "range": 6, "attackBonusModifier": 0, "damageDice": "1d8+3", "damageBonus": 0, "endsAttack": true, "cooldown": 1, "maxUses": 4 },
+  { "id": "guardian_mark", "name": "守护印记", "type": "buff", "targetType": "ally", "description": "给 4 格内友军施加守护：AC +2，持续 2 次该单位回合。", "range": 4, "statusEffect": { "id": "guarded", "name": "守护", "duration": 2, "acModifier": 2 }, "endsAttack": true, "cooldown": 3, "maxUses": 2 },
+  { "id": "dirty_stab", "name": "淬毒刺击", "type": "attack", "targetType": "enemy", "description": "近战攻击，命中后额外 +1 伤害，并施加中毒：每回合 1d4，持续 2 回合。", "range": 1, "attackBonusModifier": 0, "damageDice": "1d6+2", "damageBonus": 1, "statusEffect": { "id": "poisoned", "name": "中毒", "duration": 2, "tickDamageDice": "1d4" }, "endsAttack": true, "cooldown": 2, "maxUses": 3 },
+  { "id": "heavy_cleave", "name": "重劈推击", "type": "attack", "targetType": "enemy", "description": "兽人重击，命中后额外 +2 伤害，并将目标推开 1 格。", "range": 1, "attackBonusModifier": 0, "damageDice": "1d12+3", "damageBonus": 2, "push": 1, "endsAttack": true, "cooldown": 2, "maxUses": 2 }
 ]
