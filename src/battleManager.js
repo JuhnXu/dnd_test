@@ -166,10 +166,15 @@ export class BattleManager {
     const { x, y } = this.getTileFromEvent(event);
     if (!this.gridManager.isInsideGrid(x, y)) return;
 
+    if (this.isRepeatClickConfirm(x, y)) {
+      this.confirmPendingAction();
+      return;
+    }
+
     if (this.mode === ACTION_MODE.MOVE) this.queueMove(current, x, y);
     if (this.mode === ACTION_MODE.ATTACK) {
       const target = this.gridManager.getUnitAt(x, y);
-      if (target && this.combatSystem.canAttack(current, target)) this.pendingAction = { type: "attack", attacker: current, target, label: `确认让 ${current.name} 普通攻击 ${target.name}？` };
+      if (target && this.combatSystem.canAttack(current, target)) this.pendingAction = { type: "attack", attacker: current, target, label: `确认让 ${current.name} 普通攻击 ${target.name}？再次点击 ${target.name} 可直接确认。` };
     }
     if (this.mode === ACTION_MODE.SKILL && this.selectedSkill) {
       const skill = this.selectedSkill;
@@ -177,21 +182,42 @@ export class BattleManager {
         const center = { x, y };
         if (this.skillSystem.canUseSkill(current, center, skill)) {
           const count = this.units.filter(u => u.isAlive && u.team !== current.team && this.gridManager.getDistance(u, center) <= (skill.radius || 0)).length;
-          this.pendingAction = { type: "skill", attacker: current, target: center, center, skill, label: `确认使用 ${skill.name} 指向 (${x}, ${y})？将影响 ${count} 个敌人。` };
+          this.pendingAction = { type: "skill", attacker: current, target: center, center, skill, label: `确认使用 ${skill.name} 指向 (${x}, ${y})？将影响 ${count} 个敌人。再次点击该格可直接确认。` };
         }
       } else {
         const target = this.gridManager.getUnitAt(x, y);
-        if (target && this.skillSystem.canUseSkill(current, target, skill)) this.pendingAction = { type: "skill", attacker: current, target, skill, label: `确认让 ${current.name} 对 ${target.name} 使用 ${skill.name}？` };
+        if (target && this.skillSystem.canUseSkill(current, target, skill)) this.pendingAction = { type: "skill", attacker: current, target, skill, label: `确认让 ${current.name} 对 ${target.name} 使用 ${skill.name}？再次点击 ${target.name} 可直接确认。` };
       }
     }
     this.render();
+  }
+
+
+  isRepeatClickConfirm(x, y) {
+    const action = this.pendingAction;
+    if (!action) return false;
+
+    if (action.type === "move") {
+      return action.x === x && action.y === y;
+    }
+
+    if (action.type === "attack") {
+      return action.target?.x === x && action.target?.y === y;
+    }
+
+    if (action.type === "skill") {
+      if (action.center) return action.center.x === x && action.center.y === y;
+      return action.target?.x === x && action.target?.y === y;
+    }
+
+    return false;
   }
 
   queueMove(unit, x, y) {
     const movePlan = this.gridManager.findPath(unit, x, y);
     if (!movePlan) return;
     this.previewPath = movePlan.path;
-    this.pendingAction = { type: "move", unit, x, y, path: movePlan.path, cost: movePlan.cost, label: `确认让 ${unit.name} 移动到 (${x}, ${y})？消耗 ${movePlan.cost} 格移动。` };
+    this.pendingAction = { type: "move", unit, x, y, path: movePlan.path, cost: movePlan.cost, label: `确认让 ${unit.name} 移动到 (${x}, ${y})？消耗 ${movePlan.cost} 格移动。再次点击该目的地可直接确认。` };
   }
 
   queueDefend() {
