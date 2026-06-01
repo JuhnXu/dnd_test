@@ -1,5 +1,6 @@
 import { INITIAL_UNITS, loadGameData, preloadImages, hasLocalProjectData, loadProjectDataFromLocalStorage } from "./config.js";
 import { BattleManager } from "./battleManager.js";
+import { DebugTools } from "./debugTools.js";
 
 await loadGameData();
 if (hasLocalProjectData()) {
@@ -17,3 +18,5 @@ const battleManager = new BattleManager(canvas);
 
 battleManager.resetGame();
 window.__battleManager = battleManager;
+const debugTools = new DebugTools(battleManager);
+window.__debugTools = debugTools;

@@ -1,4 +1,4 @@
-import { CURRENT_LEVEL_INDEX, getCurrentLevel, GRID_SIZE, INITIAL_UNITS, MAP_TILES, TEAM, TERRAIN, TILE_SIZE } from "./config.js";
+import { CURRENT_LEVEL_INDEX, getCurrentLevel, GRID_SIZE, INITIAL_UNITS, MAP_TILES, TEAM, TERRAIN, TILE_SIZE, exportProjectData, importDataByType, saveProjectDataToLocalStorage, loadProjectDataFromLocalStorage, clearLocalProjectData, validateProjectData } from "./config.js";
 
 const TERRAIN_NAMES = {
   [TERRAIN.NORMAL]: "普通",
@@ -102,6 +102,19 @@ export class DebugTools {
       this.battle.uiManager.log("已生成并尝试复制当前关卡 JSON。", "system");
     });
     document.getElementById("dbgDownloadLevel")?.addEventListener("click", () => this.downloadCurrentLevelJson());
+
+    document.getElementById("dbgSaveLocal")?.addEventListener("click", () => this.saveLocal());
+    document.getElementById("dbgLoadLocal")?.addEventListener("click", () => this.loadLocal());
+    document.getElementById("dbgClearLocal")?.addEventListener("click", () => this.clearLocal());
+    document.getElementById("dbgValidateData")?.addEventListener("click", () => this.validateData());
+    document.getElementById("dbgImportJson")?.addEventListener("click", () => this.importJsonFile());
+    document.getElementById("dbgCopyProject")?.addEventListener("click", async () => {
+      const json = this.exportProjectJson();
+      this.outputEl.value = json;
+      try { await navigator.clipboard.writeText(json); } catch (_) {}
+      this.battle.uiManager.log("已生成并尝试复制完整项目数据包。", "system");
+    });
+    document.getElementById("dbgDownloadProject")?.addEventListener("click", () => this.downloadProjectJson());
   }
 
   patchBattleRender() {
@@ -398,6 +411,73 @@ export class DebugTools {
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
 
+
+  exportProjectJson() {
+    const data = exportProjectData();
+    const current = getCurrentLevel();
+    if (current) current.tiles = cloneJson(MAP_TILES);
+    return JSON.stringify(data, null, 2);
+  }
+
+  downloadProjectJson() {
+    const json = this.exportProjectJson();
+    this.outputEl.value = json;
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dnd-demo-project-data-v18-2.json";
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  saveLocal() {
+    saveProjectDataToLocalStorage();
+    this.battle.uiManager.log("已保存到浏览器 localStorage，刷新后仍可读取。", "system");
+    this.update();
+  }
+
+  loadLocal() {
+    const data = loadProjectDataFromLocalStorage();
+    if (!data) { this.battle.uiManager.log("没有找到浏览器本地保存。", "system"); return; }
+    this.battle.uiManager.log("已读取浏览器本地保存，并重开当前关卡。", "system");
+    this.battle.resetGame();
+    this.refreshUnitSelectors();
+    this.loadUnitIntoForm(this.battle.currentUnit?.id || INITIAL_UNITS[0]?.id);
+    this.update();
+  }
+
+  clearLocal() {
+    clearLocalProjectData();
+    this.battle.uiManager.log("已清除浏览器本地保存。刷新页面后会恢复 data/ 目录默认数据。", "system");
+    this.update();
+  }
+
+  validateData() {
+    const result = validateProjectData();
+    this.outputEl.value = JSON.stringify(result, null, 2);
+    if (result.ok) this.battle.uiManager.log(`数据校验通过。警告 ${result.warnings.length} 条。`, "system");
+    else this.battle.uiManager.log(`数据校验发现 ${result.errors.length} 个错误。详情见输出框。`, "system");
+  }
+
+  async importJsonFile() {
+    const fileInput = document.getElementById("dbgImportFile");
+    const typeInput = document.getElementById("dbgImportType");
+    const file = fileInput?.files?.[0];
+    if (!file) { this.battle.uiManager.log("请先选择一个 JSON 文件。", "system"); return; }
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      importDataByType(typeInput?.value || "project", json);
+      this.battle.uiManager.log(`已导入 ${file.name}，并重开当前关卡。`, "system");
+      this.battle.resetGame();
+      this.refreshUnitSelectors();
+      this.loadUnitIntoForm(this.battle.currentUnit?.id || INITIAL_UNITS[0]?.id);
+      this.validateData();
+    } catch (error) {
+      this.battle.uiManager.log(`导入失败：${error.message}`, "system");
+    }
+  }
+
   update() {
     if (!this.infoEl || !this.outputEl) return;
     const current = this.battle.currentUnit;
@@ -414,7 +494,7 @@ export class DebugTools {
       <div class="debug-card"><strong>编辑状态</strong><br>${editText.replaceAll("\n", "<br>")}<br><br><strong>出生点</strong><br>${spawnText}</div>
     `;
 
-    const payload = { version: "v18.1-spawn-unit-editor", currentUnit: this.getUnitJsonSummary(), hoveredTile: tile, reachable: this.getReachableSummary(), levelSpawns: level?.spawns || {}, levelExportHint: "复制/下载关卡 JSON 可持久化 tiles、unitIds、spawns；复制/下载单位 JSON 可持久化单位属性。" };
+    const payload = { version: "v18.2-separated-editor-persistence", currentUnit: this.getUnitJsonSummary(), hoveredTile: tile, reachable: this.getReachableSummary(), levelSpawns: level?.spawns || {}, levelExportHint: "复制/下载关卡 JSON 可持久化 tiles、unitIds、spawns；复制/下载单位 JSON 可持久化单位属性。" };
     this.outputEl.value = JSON.stringify(payload, null, 2);
   }
 }

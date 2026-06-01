@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DND 战棋战斗 Demo v18.2 编辑器</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="board-wrap">
+      <div id="turnBanner" class="turn-banner"></div>
+      <canvas id="battleCanvas" width="640" height="640"></canvas>
+      <div id="tooltip" class="tooltip hidden"></div>
+    </div>
+    <aside class="panel">
+      <h1>DND 2D 战棋 Demo v18.2 编辑器</h1><div class="top-links"><a href="./index.html">进入游玩界面</a></div>
+      <div class="hint">v18.2 编辑器：与游玩界面分离，支持本地保存、JSON 导入、数据校验和完整数据包导出。</div>
+      <div class="level-info" id="levelInfo"></div>
+      <div class="status" id="status"></div>
+      <div class="actions">
+        <button id="moveBtn">移动模式</button>
+        <button id="attackBtn">攻击模式</button>
+        <button id="skillBtn">技能模式</button>
+        <button id="defendBtn">防御动作</button>
+        <button id="endTurnBtn">结束回合</button>
+        <button id="restartBtn">重新开始</button>
+        <button id="nextLevelBtn">下一关</button>
+      </div>
+      <h2>行动确认</h2><div class="confirm-panel" id="confirmPanel"></div>
+      <h2>技能</h2><div class="skill-list" id="skillList"></div>
+      <h2>先攻顺序</h2><div class="initiative-list" id="initiativeList"></div>
+      <h2>单位</h2><div class="unit-list" id="unitList"></div>
+      <h2>战斗日志</h2><div class="log" id="log"></div>
+      <details class="debug-panel" open>
+        <summary>Debug / 地图与数据编辑器</summary>
+        <div class="debug-toolbar">
+          <label><input type="checkbox" id="dbgCoords" checked>坐标</label>
+          <label><input type="checkbox" id="dbgTerrain" checked>地形ID</label>
+          <label><input type="checkbox" id="dbgMoveCost">移动成本</label>
+          <label><input type="checkbox" id="dbgReachable">可达格</label>
+          <label><input type="checkbox" id="dbgEditMode">启用编辑</label>
+        </div>
+        <div class="debug-toolbar">
+          <label>编辑模式
+            <select id="dbgEditKind">
+              <option value="terrain">地形</option>
+              <option value="playerSpawn">玩家出生点</option>
+              <option value="enemySpawn">敌人出生点</option>
+            </select>
+          </label>
+          <label>地形
+            <select id="dbgTerrainSelect">
+              <option value="0">普通</option>
+              <option value="1">障碍</option>
+              <option value="2">困难</option>
+              <option value="3">伤害</option>
+              <option value="4">治疗</option>
+              <option value="5">目标区域</option>
+            </select>
+          </label>
+          <label>出生单位
+            <select id="dbgSpawnUnitSelect"></select>
+          </label>
+          <button id="dbgRefresh">刷新 Debug</button>
+        </div>
+        <div class="debug-toolbar">
+          <label>编辑单位
+            <select id="dbgUnitSelect"></select>
+          </label>
+          <button id="dbgLoadUnit">读取单位</button>
+          <button id="dbgApplyUnit">应用属性</button>
+          <button id="dbgCopyUnits">复制单位 JSON</button>
+          <button id="dbgDownloadUnits">下载单位 JSON</button>
+        </div>
+        <div class="unit-editor-grid">
+          <label>名称<input id="unitNameInput"></label>
+          <label>阵营<select id="unitTeamInput"><option value="player">player</option><option value="enemy">enemy</option></select></label>
+          <label>职业/类型<input id="unitClassInput"></label>
+          <label>等级<input id="unitLevelInput" type="number" min="1" max="20"></label>
+          <label>HP<input id="unitHpInput" type="number" min="0"></label>
+          <label>Max HP<input id="unitMaxHpInput" type="number" min="1"></label>
+          <label>AC<input id="unitAcInput" type="number" min="1"></label>
+          <label>移动<input id="unitMoveInput" type="number" min="0"></label>
+          <label>熟练<input id="unitProfInput" type="number" min="0"></label>
+          <label>伤害骰<input id="unitDamageDiceInput"></label>
+          <label>攻击属性<select id="unitAttackAbilityInput"><option>STR</option><option>DEX</option><option>CON</option><option>INT</option><option>WIS</option><option>CHA</option></select></label>
+          <label>伤害属性<select id="unitDamageAbilityInput"><option>STR</option><option>DEX</option><option>CON</option><option>INT</option><option>WIS</option><option>CHA</option></select></label>
+          <label>STR<input id="unitStrInput" type="number" min="1" max="30"></label>
+          <label>DEX<input id="unitDexInput" type="number" min="1" max="30"></label>
+          <label>CON<input id="unitConInput" type="number" min="1" max="30"></label>
+          <label>INT<input id="unitIntInput" type="number" min="1" max="30"></label>
+          <label>WIS<input id="unitWisInput" type="number" min="1" max="30"></label>
+          <label>CHA<input id="unitChaInput" type="number" min="1" max="30"></label>
+        </div>
+        <p class="debug-note">出生点编辑：勾选“启用编辑”，选择玩家/敌人出生点模式，再点击棋盘放置。右键棋盘上的出生点可删除。单位属性编辑为运行时编辑，可通过本地保存或导出 JSON 持久化。</p>
+        <h2>导入 / 保存 / 校验</h2>
+        <div class="debug-toolbar">
+          <button id="dbgSaveLocal">保存到浏览器</button>
+          <button id="dbgLoadLocal">读取浏览器保存</button>
+          <button id="dbgClearLocal">恢复默认数据</button>
+          <button id="dbgValidateData">校验数据</button>
+        </div>
+        <div class="debug-toolbar">
+          <label>导入数据类型
+            <select id="dbgImportType">
+              <option value="levels">levels.json</option>
+              <option value="units">units.json</option>
+              <option value="skills">skills.json</option>
+              <option value="spells">spells.json</option>
+              <option value="classFeatures">classFeatures.json</option>
+              <option value="project">完整项目数据包</option>
+            </select>
+          </label>
+          <input type="file" id="dbgImportFile" accept="application/json,.json" />
+          <button id="dbgImportJson">导入 JSON</button>
+          <button id="dbgCopyProject">复制完整数据包</button>
+          <button id="dbgDownloadProject">下载完整数据包</button>
+        </div>
+        <div class="debug-info" id="debugInfo"></div>
+        <div class="debug-toolbar">
+          <button id="dbgCopyLevel">复制关卡 JSON</button>
+          <button id="dbgDownloadLevel">下载关卡 JSON</button>
+        </div>
+        <textarea class="debug-output" id="debugOutput" spellcheck="false"></textarea>
+      </details>
+
+    </aside>
+  </div>
+  <script type="module" src="./src/editorMain.js"></script>
+</body>
+</html>
