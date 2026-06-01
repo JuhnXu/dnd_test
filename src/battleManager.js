@@ -85,7 +85,7 @@ export class BattleManager {
     this.hoverTile = null;
     this.pendingAction = null;
     this.uiManager.clearLog();
-    this.uiManager.log(`v15 关卡开始：${level?.name || "未命名关卡"}。${level?.description || ""}`, "system");
+    this.uiManager.log(`v18 调试版关卡开始：${level?.name || "未命名关卡"}。${level?.description || ""}`, "system");
     for (const unit of this.turnManager.initiativeOrder) {
       this.uiManager.log(`${unit.name} 先攻：d20(${unit.initiativeRoll}) + 敏捷修正${unit.initiativeBonus >= 0 ? "+" + unit.initiativeBonus : unit.initiativeBonus} = ${unit.initiativeTotal}`, unit.team);
     }

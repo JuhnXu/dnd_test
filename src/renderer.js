@@ -9,6 +9,7 @@ export class Renderer {
     this.skillSystem = skillSystem;
     this.imageCache = new Map();
     this.onImageLoaded = null;
+    this.debugOptions = { showCoords: true, showTerrain: true, showMoveCost: false, showReachable: false };
   }
 
   getAvatarImage(src) {
@@ -29,6 +30,7 @@ export class Renderer {
     this.drawHoverTile(hoverTile);
     this.drawPendingAction(pendingAction);
     this.drawUnits(units, currentUnit);
+    this.drawDebugOverlay(currentUnit);
   }
 
   drawBoard() {
@@ -243,6 +245,44 @@ export class Renderer {
       ctx.textBaseline = "middle";
       ctx.fillText(icon.text, x, y);
     });
+  }
+
+
+  drawDebugOverlay(currentUnit) {
+    const opts = this.debugOptions || {};
+    if (!opts.showCoords && !opts.showTerrain && !opts.showMoveCost && !opts.showReachable) return;
+    const ctx = this.ctx;
+    const reachable = new Map();
+    if (opts.showReachable && currentUnit) {
+      for (const tile of this.gridManager.getReachableTiles(currentUnit)) {
+        reachable.set(`${tile.x},${tile.y}`, tile.cost);
+      }
+    }
+    for (let y = 0; y < GRID_SIZE; y++) {
+      for (let x = 0; x < GRID_SIZE; x++) {
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
+        if (opts.showReachable && reachable.has(`${x},${y}`)) {
+          ctx.fillStyle = "rgba(34,197,94,.18)";
+          ctx.fillRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+          ctx.strokeStyle = "rgba(34,197,94,.72)";
+          ctx.strokeRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+        }
+        const lines = [];
+        if (opts.showCoords) lines.push(`${x},${y}`);
+        if (opts.showTerrain) lines.push(`T${this.gridManager.getTerrain(x, y)}`);
+        if (opts.showMoveCost && !this.gridManager.isBlocked(x, y)) lines.push(`C${this.gridManager.getMoveCost(x, y)}`);
+        if (opts.showReachable && reachable.has(`${x},${y}`)) lines.push(`R${reachable.get(`${x},${y}`)}`);
+        if (!lines.length) continue;
+        ctx.fillStyle = "rgba(3,7,18,.72)";
+        ctx.fillRect(px + 3, py + 3, 44, 14 + (lines.length - 1) * 12);
+        ctx.fillStyle = "#e5e7eb";
+        ctx.font = "10px ui-monospace, SFMono-Regular, Menlo, monospace";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        lines.forEach((line, i) => ctx.fillText(line, px + 6, py + 5 + i * 12));
+      }
+    }
   }
 
 }

@@ -129,3 +129,24 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   line-height: 1.5;
   margin: 10px 0;
 }
+
+
+/* v18 debug tools */
+.debug-panel {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: #d1d5db;
+  font-size: 13px;
+}
+.debug-panel summary { cursor: pointer; color: #facc15; font-weight: 700; margin-bottom: 8px; }
+.debug-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.debug-toolbar label { display: inline-flex; gap: 4px; align-items: center; padding: 4px 8px; border-radius: 999px; background: #111827; border: 1px solid #334155; }
+.debug-toolbar select { border: 1px solid #475569; background: #111827; color: #e5e7eb; border-radius: 8px; padding: 7px 8px; }
+.debug-toolbar button { padding: 7px 10px; font-size: 12px; background: #c4b5fd; }
+.debug-info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+.debug-card { padding: 8px; border-radius: 10px; background: #111827; border: 1px solid #334155; line-height: 1.45; }
+.debug-output { width: 100%; min-height: 130px; resize: vertical; border-radius: 10px; padding: 10px; background: #030712; color: #d1d5db; border: 1px solid #334155; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+@media (max-width: 980px) { .debug-info { grid-template-columns: 1fr; } }

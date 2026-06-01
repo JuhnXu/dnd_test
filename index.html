@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DND 战棋战斗 Demo v15</title>
+  <title>DND 战棋战斗 Demo v18</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
@@ -12,10 +12,35 @@
       <div id="turnBanner" class="turn-banner"></div>
       <canvas id="battleCanvas" width="640" height="640"></canvas>
       <div id="tooltip" class="tooltip hidden"></div>
+      <details class="debug-panel" id="debugPanel" open>
+        <summary>v18 Debug / 地图编辑工具</summary>
+        <div class="debug-toolbar">
+          <label><input type="checkbox" id="dbgCoords" checked> 坐标</label>
+          <label><input type="checkbox" id="dbgTerrain" checked> 地形</label>
+          <label><input type="checkbox" id="dbgMoveCost"> 移动成本</label>
+          <label><input type="checkbox" id="dbgReachable"> 可达格</label>
+          <label><input type="checkbox" id="dbgEditMode"> 编辑地形</label>
+        </div>
+        <div class="debug-toolbar">
+          <select id="dbgTerrainSelect">
+            <option value="0">普通地形</option>
+            <option value="1">障碍物</option>
+            <option value="2">困难地形</option>
+            <option value="3">伤害地形</option>
+            <option value="4">治疗地形</option>
+            <option value="5">目标区域</option>
+          </select>
+          <button id="dbgRefresh">刷新数据</button>
+          <button id="dbgCopyLevel">复制关卡 JSON</button>
+          <button id="dbgDownloadLevel">下载 JSON</button>
+        </div>
+        <div id="debugInfo" class="debug-info"></div>
+        <textarea id="debugOutput" class="debug-output" readonly placeholder="这里会显示当前单位、格子、寻路和关卡 JSON"></textarea>
+      </details>
     </div>
     <aside class="panel">
-      <h1>DND 2D 战棋 Demo v15</h1>
-      <div class="hint">v15 新增：多关卡、地形类型、胜利条件和关卡切换。</div>
+      <h1>DND 2D 战棋 Demo v18</h1>
+      <div class="hint">v18 新增：Debug 面板、地形/寻路调试、简易地图编辑和 JSON 导出。</div>
       <div class="level-info" id="levelInfo"></div>
       <div class="status" id="status"></div>
       <div class="actions">
