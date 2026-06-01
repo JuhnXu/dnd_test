@@ -8,7 +8,12 @@ export class Unit {
     this.hasMoved = false;
     this.hasAttacked = false;
     this.hasDefended = false;
+    this.actionAvailable = true;
+    this.bonusActionAvailable = true;
+    this.reactionAvailable = true;
     this.isDefending = false;
+    this.isDodging = false;
+    this.isDisengaging = false;
     this.remainingMove = config.move;
     this.initiativeRoll = 0;
     this.initiativeTotal = 0;
@@ -87,7 +92,12 @@ export class Unit {
     this.hasMoved = false;
     this.hasAttacked = false;
     this.hasDefended = false;
+    this.actionAvailable = true;
+    this.bonusActionAvailable = true;
+    this.reactionAvailable = true;
     this.isDefending = false;
+    this.isDodging = false;
+    this.isDisengaging = false;
     this.remainingMove = this.move;
     for (const state of Object.values(this.skillState)) {
       if (state.cooldownRemaining > 0) state.cooldownRemaining -= 1;
@@ -113,11 +123,52 @@ export class Unit {
     this.statusEffects = this.statusEffects.filter(effect => effect.duration > 0);
   }
 
-  defend() {
-    if (this.hasAttacked || this.hasDefended) return false;
-    this.isDefending = true;
-    this.hasDefended = true;
+  spendAction() {
+    if (!this.actionAvailable) return false;
+    this.actionAvailable = false;
     this.hasAttacked = true;
+    return true;
+  }
+
+  spendBonusAction() {
+    if (!this.bonusActionAvailable) return false;
+    this.bonusActionAvailable = false;
+    return true;
+  }
+
+  spendReaction() {
+    if (!this.reactionAvailable) return false;
+    this.reactionAvailable = false;
+    return true;
+  }
+
+  restoreAction() {
+    this.actionAvailable = true;
+    this.hasAttacked = false;
+    this.hasDefended = false;
+  }
+
+  defend() {
+    if (!this.actionAvailable || this.hasDefended) return false;
+    this.isDefending = true;
+    this.isDodging = true;
+    this.hasDefended = true;
+    this.spendAction();
+    return true;
+  }
+
+  dash() {
+    if (!this.actionAvailable) return false;
+    this.remainingMove += this.move;
+    this.hasMoved = this.remainingMove <= 0;
+    this.spendAction();
+    return true;
+  }
+
+  disengage() {
+    if (!this.actionAvailable) return false;
+    this.isDisengaging = true;
+    this.spendAction();
     return true;
   }
 }

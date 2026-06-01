@@ -114,3 +114,5 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .unit-card-with-avatar .unit-hpbar-inner { height: 100%; background: linear-gradient(90deg, #ef4444, #22c55e); }
 
 .ability-line { color:#cbd5e1; font-size:12px; line-height:1.5; }
+
+.log .reaction, .reaction { color: #f0abfc; font-weight: 700; }

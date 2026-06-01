@@ -14,7 +14,8 @@
     "addAbilityDamage": false,
     "endsAttack": true,
     "cooldown": 0,
-    "maxUses": null
+    "maxUses": null,
+    "actionCost": "action"
   },
   {
     "id": "healing_word",
@@ -31,7 +32,8 @@
     "healAddSpellAbility": true,
     "endsAttack": true,
     "cooldown": 0,
-    "maxUses": null
+    "maxUses": null,
+    "actionCost": "bonus"
   },
   {
     "id": "burning_hands",
@@ -50,7 +52,8 @@
     "halfOnSave": true,
     "endsAttack": true,
     "cooldown": 0,
-    "maxUses": null
+    "maxUses": null,
+    "actionCost": "action"
   },
   {
     "id": "shadow_bolt",
@@ -67,6 +70,7 @@
     "addAbilityDamage": false,
     "endsAttack": true,
     "cooldown": 0,
-    "maxUses": null
+    "maxUses": null,
+    "actionCost": "action"
   }
 ]

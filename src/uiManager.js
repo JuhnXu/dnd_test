@@ -29,11 +29,13 @@ export class UIManager {
     this.attackBtn = document.getElementById("attackBtn");
     this.skillBtn = document.getElementById("skillBtn");
     this.defendBtn = document.getElementById("defendBtn");
+    this.dashBtn = document.getElementById("dashBtn");
+    this.disengageBtn = document.getElementById("disengageBtn");
     this.endTurnBtn = document.getElementById("endTurnBtn");
     this.restartBtn = document.getElementById("restartBtn");
   }
 
-  bindEvents({ onMoveMode, onAttackMode, onSkillMode, onSkillSelect, onDefend, onEndTurn, onRestart, onConfirmAction, onCancelAction }) {
+  bindEvents({ onMoveMode, onAttackMode, onSkillMode, onSkillSelect, onDefend, onDash, onDisengage, onEndTurn, onRestart, onConfirmAction, onCancelAction }) {
     this.onSkillSelect = onSkillSelect;
     this.onConfirmAction = onConfirmAction;
     this.onCancelAction = onCancelAction;
@@ -41,6 +43,8 @@ export class UIManager {
     this.attackBtn.addEventListener("click", onAttackMode);
     this.skillBtn.addEventListener("click", onSkillMode);
     this.defendBtn.addEventListener("click", onDefend);
+    this.dashBtn?.addEventListener("click", onDash);
+    this.disengageBtn?.addEventListener("click", onDisengage);
     this.endTurnBtn.addEventListener("click", onEndTurn);
     this.restartBtn.addEventListener("click", onRestart);
   }
@@ -64,7 +68,7 @@ export class UIManager {
     const selectedSkill = availableSkills.find(skill => skill.id === selectedSkillId);
     const modeText = mode === ACTION_MODE.MOVE ? "移动" : mode === ACTION_MODE.ATTACK ? "普通攻击" : `技能${selectedSkill ? `：${selectedSkill.name}` : ""}`;
     const actionText = currentUnit.team === TEAM.PLAYER
-      ? `剩余移动 ${currentUnit.remainingMove}/${currentUnit.move}，动作${currentUnit.hasAttacked ? "已用" : "可用"}`
+      ? `剩余移动 ${currentUnit.remainingMove}/${currentUnit.move}，动作${currentUnit.actionAvailable ? "可用" : "已用"}，附赠动作${currentUnit.bonusActionAvailable ? "可用" : "已用"}，反应${currentUnit.reactionAvailable ? "可用" : "已用"}`
       : inputLocked ? "敌人行动中" : "等待敌人行动";
     const status = battleEnded ? "战斗结束" : inputLocked ? "处理中" : "等待操作";
     this.turnBannerEl.innerHTML = `
@@ -75,7 +79,8 @@ export class UIManager {
 
   renderStatusBadges(unit) {
     const badges = [];
-    if (unit.isDefending) badges.push(`<span class="status-badge status-defense">🛡 防御</span>`);
+    if (unit.isDefending) badges.push(`<span class="status-badge status-defense">🛡 闪避</span>`);
+    if (unit.isDisengaging) badges.push(`<span class="status-badge status-buff">↩ 脱离</span>`);
     for (const effect of unit.statusEffects) {
       const cls = (effect.name || "").includes("毒") ? "status-poison" : effect.acBonus || effect.attackBonus ? "status-buff" : "";
       const icon = (effect.name || "").includes("毒") ? "☠" : effect.acBonus ? "◆" : effect.attackBonus ? "⚔" : "✦";
@@ -97,6 +102,7 @@ export class UIManager {
       <strong>阵营：</strong>${currentUnit.team === TEAM.PLAYER ? "玩家" : "敌人"}<br>
       <strong>HP：</strong>${currentUnit.hp}/${currentUnit.maxHp}　<strong>AC：</strong>${currentUnit.effectiveAc}${defendText}<br>
       <strong>状态：</strong>${statusText}${this.renderStatusBadges(currentUnit)}
+      <strong>行动经济：</strong>动作 ${currentUnit.actionAvailable ? "可用" : "已用"}｜附赠动作 ${currentUnit.bonusActionAvailable ? "可用" : "已用"}｜反应 ${currentUnit.reactionAvailable ? "可用" : "已用"}<br>
       <strong>剩余移动：</strong>${currentUnit.remainingMove}/${currentUnit.move}<br>
       <strong>普通攻击：</strong>+${currentUnit.effectiveAttackBonus}，${currentUnit.damageDice}，范围 ${currentUnit.attackRange}<br>
       <strong>职业特性：</strong>${featureText(currentUnit)}<br>
@@ -119,6 +125,7 @@ export class UIManager {
       const uses = state?.usesRemaining === null ? "∞" : state?.usesRemaining;
       const cd = state?.cooldownRemaining || 0;
       const spellTag = skill.isSpell ? `${skill.spellLevel === 0 ? "戏法" : `${skill.spellLevel}环法术`} | ` : "";
+      const actionCostName = skill.actionCost === "bonus" ? "附赠动作" : skill.actionCost === "reaction" ? "反应" : skill.actionCost === "free" ? "免费" : "动作";
       const dcText = skill.isSpell ? (skill.saveDC || currentUnit.spellSaveDC) : skill.saveDC;
       const detail = skill.type === "heal"
         ? `${spellTag}治疗 ${skill.healDice}${skill.healBonus ? ` + ${skill.healBonus}` : ""}${skill.healAddSpellAbility ? ` + ${currentUnit.spellcastingAbility}修正` : ""}`
@@ -139,7 +146,7 @@ ${skill.isSpell ? `法术：${skill.spellLevel === 0 ? "戏法" : `${skill.spell
       return `
         <div class="skill-card ${skill.id === selectedSkillId ? "active" : ""} ${disabled ? "disabled" : ""}" data-skill-id="${skill.id}" data-tooltip="${tooltip.replace(/"/g, "&quot;")}">
           <div class="skill-name">${skill.name}</div>
-          <div class="skill-meta">目标 ${targetText} | 范围 ${skill.range}</div>
+          <div class="skill-meta">目标 ${targetText} | 范围 ${skill.range} | 消耗 ${actionCostName}</div>
           <div class="skill-meta">${detail}</div>
           <div class="skill-meta">剩余 ${uses} 次 | 冷却 ${cd} 回合</div>
           <div class="skill-desc">${reason || skill.description}</div>
@@ -205,10 +212,12 @@ ${skill.isSpell ? `法术：${skill.spellLevel === 0 ? "戏法" : `${skill.spell
   renderButtons(currentUnit, battleEnded, availableSkills, inputLocked, skillSystem) {
     const isPlayerTurn = currentUnit && currentUnit.team === TEAM.PLAYER && !battleEnded && !inputLocked;
     this.moveBtn.disabled = !isPlayerTurn || currentUnit.remainingMove <= 0;
-    this.attackBtn.disabled = !isPlayerTurn || currentUnit.hasAttacked;
+    this.attackBtn.disabled = !isPlayerTurn || !currentUnit.actionAvailable;
     const hasUsableSkill = availableSkills.some(skill => !skillSystem.getUnavailableReason(currentUnit, skill));
     this.skillBtn.disabled = !isPlayerTurn || availableSkills.length === 0 || !hasUsableSkill;
-    this.defendBtn.disabled = !isPlayerTurn || currentUnit.hasAttacked || currentUnit.hasDefended;
+    this.defendBtn.disabled = !isPlayerTurn || !currentUnit.actionAvailable || currentUnit.hasDefended;
+    if (this.dashBtn) this.dashBtn.disabled = !isPlayerTurn || !currentUnit.actionAvailable;
+    if (this.disengageBtn) this.disengageBtn.disabled = !isPlayerTurn || !currentUnit.actionAvailable;
     this.endTurnBtn.disabled = !isPlayerTurn;
   }
 

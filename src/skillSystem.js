@@ -22,7 +22,10 @@ export class SkillSystem {
 
   canUseSkill(user, target, skill) {
     if (!this.isValidTarget(user, target, skill)) return false;
-    if (user.hasAttacked && skill.endsAttack) return false;
+    const cost = skill.actionCost || (skill.endsAttack ? "action" : "bonus");
+    if (cost === "action" && !user.actionAvailable) return false;
+    if (cost === "bonus" && !user.bonusActionAvailable) return false;
+    if (cost === "reaction" && !user.reactionAvailable) return false;
     if (skill.isSpell && skill.spellSlotCost && !user.hasSpellSlot?.(skill.spellSlotCost)) return false;
     const state = this.getState(user, skill);
     if (state) {
@@ -38,7 +41,10 @@ export class SkillSystem {
     if (state.cooldownRemaining > 0) return `冷却中：${state.cooldownRemaining} 回合`;
     if (state.usesRemaining !== null && state.usesRemaining <= 0) return "使用次数已耗尽";
     if (skill.isSpell && skill.spellSlotCost && !user.hasSpellSlot?.(skill.spellSlotCost)) return `${skill.spellSlotCost} 环法术位不足`;
-    if (user.hasAttacked && skill.endsAttack) return "本回合已用过动作";
+    const cost = skill.actionCost || (skill.endsAttack ? "action" : "bonus");
+    if (cost === "action" && !user.actionAvailable) return "本回合动作已用";
+    if (cost === "bonus" && !user.bonusActionAvailable) return "本回合附赠动作已用";
+    if (cost === "reaction" && !user.reactionAvailable) return "本轮反应已用";
     return "";
   }
 
@@ -49,7 +55,10 @@ export class SkillSystem {
       if (state.usesRemaining !== null) state.usesRemaining -= 1;
     }
     if (skill.isSpell && skill.spellSlotCost) user.spendSpellSlot?.(skill.spellSlotCost);
-    if (skill.endsAttack) user.hasAttacked = true;
+    const cost = skill.actionCost || (skill.endsAttack ? "action" : "bonus");
+    if (cost === "action") user.spendAction?.();
+    if (cost === "bonus") user.spendBonusAction?.();
+    if (cost === "reaction") user.spendReaction?.();
   }
 
   useSkill(user, target, skill, allUnits = []) {
@@ -84,9 +93,8 @@ export class SkillSystem {
   }
 
   useExtraAction(user, target, skill) {
-    user.hasAttacked = false;
-    user.hasDefended = false;
     this.spendSkill(user, skill);
+    user.restoreAction?.();
     return { success: true, kind: "extraAction", type: "skill", skill, attacker: user, target: user };
   }
 
@@ -111,14 +119,15 @@ export class SkillSystem {
   }
 
   useAttackSkill(user, target, skill) {
-    const d20 = Dice.rollDie(20);
+    const rollInfo = this.rollD20ForAttack(target);
+    const d20 = rollInfo.value;
     const attackBonus = (skill.useSpellAttack ? user.getSpellAttackBonus() : user.effectiveAttackBonus) + (skill.attackBonusModifier || 0);
     const naturalOne = d20 === 1;
     const critical = d20 === 20;
     const attackTotal = d20 + attackBonus;
     const targetAc = target.effectiveAc;
     const hit = critical || (!naturalOne && attackTotal >= targetAc);
-    const result = { success: true, kind: "attack", type: "skill", skill, attacker: user, target, d20, naturalOne, critical, attackBonus, attackTotal, targetAc, hit, damage: null, killed: false, pushed: null, statusEffect: null };
+    const result = { success: true, kind: "attack", type: "skill", skill, attacker: user, target, d20, rollInfo, naturalOne, critical, attackBonus, attackTotal, targetAc, hit, damage: null, killed: false, pushed: null, statusEffect: null };
     if (hit) {
       const damage = Dice.rollDice(skill.damageDice || user.damageDice, critical ? 2 : 1);
       damage.total += (skill.addAbilityDamage === false ? 0 : user.damageAbilityModifier) + (skill.damageBonus || 0);
@@ -144,6 +153,15 @@ export class SkillSystem {
     }
     this.spendSkill(user, skill);
     return result;
+  }
+
+  rollD20ForAttack(target) {
+    if (target?.isDodging) {
+      const rolls = [Dice.rollDie(20), Dice.rollDie(20)];
+      return { value: Math.min(...rolls), rolls, mode: "disadvantage", reason: "目标正在闪避" };
+    }
+    const value = Dice.rollDie(20);
+    return { value, rolls: [value], mode: "normal" };
   }
 
   tryPush(user, target, distance) {

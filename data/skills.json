@@ -11,7 +11,8 @@
     "damageBonus": 2,
     "endsAttack": true,
     "cooldown": 2,
-    "maxUses": 3
+    "maxUses": 3,
+    "actionCost": "action"
   },
   {
     "id": "second_wind",
@@ -24,7 +25,8 @@
     "healBonus": 2,
     "endsAttack": true,
     "cooldown": 3,
-    "maxUses": 2
+    "maxUses": 2,
+    "actionCost": "action"
   },
   {
     "id": "aimed_shot",
@@ -38,7 +40,8 @@
     "damageBonus": 0,
     "endsAttack": true,
     "cooldown": 1,
-    "maxUses": 4
+    "maxUses": 4,
+    "actionCost": "action"
   },
   {
     "id": "guardian_mark",
@@ -55,7 +58,8 @@
     },
     "endsAttack": true,
     "cooldown": 3,
-    "maxUses": 2
+    "maxUses": 2,
+    "actionCost": "action"
   },
   {
     "id": "dirty_stab",
@@ -75,7 +79,8 @@
     },
     "endsAttack": true,
     "cooldown": 2,
-    "maxUses": 3
+    "maxUses": 3,
+    "actionCost": "action"
   },
   {
     "id": "heavy_cleave",
@@ -90,7 +95,8 @@
     "push": 1,
     "endsAttack": true,
     "cooldown": 2,
-    "maxUses": 2
+    "maxUses": 2,
+    "actionCost": "action"
   },
   {
     "id": "explosive_arrow",
@@ -106,7 +112,8 @@
     "halfOnSave": true,
     "endsAttack": true,
     "cooldown": 3,
-    "maxUses": 2
+    "maxUses": 2,
+    "actionCost": "action"
   },
   {
     "id": "action_surge",
@@ -117,7 +124,8 @@
     "range": 0,
     "endsAttack": false,
     "cooldown": 0,
-    "maxUses": 1
+    "maxUses": 1,
+    "actionCost": "bonus"
   },
   {
     "id": "hunters_mark",
@@ -135,7 +143,8 @@
     },
     "endsAttack": false,
     "cooldown": 0,
-    "maxUses": 2
+    "maxUses": 2,
+    "actionCost": "bonus"
   },
   {
     "id": "nimble_escape",
@@ -152,7 +161,8 @@
     },
     "endsAttack": false,
     "cooldown": 2,
-    "maxUses": 2
+    "maxUses": 2,
+    "actionCost": "bonus"
   },
   {
     "id": "orc_aggression",
@@ -169,6 +179,7 @@
     },
     "endsAttack": false,
     "cooldown": 3,
-    "maxUses": 1
+    "maxUses": 1,
+    "actionCost": "bonus"
   }
 ]

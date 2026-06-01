@@ -48,6 +48,8 @@ export class BattleManager {
       },
       onSkillSelect: skillId => { this.selectedSkillId = skillId; this.setMode(ACTION_MODE.SKILL, false); },
       onDefend: () => this.queueDefend(),
+      onDash: () => this.queueDash(),
+      onDisengage: () => this.queueDisengage(),
       onEndTurn: () => this.nextTurn(),
       onRestart: () => this.resetGame(),
       onConfirmAction: () => this.confirmPendingAction(),
@@ -77,7 +79,7 @@ export class BattleManager {
     this.hoverTile = null;
     this.pendingAction = null;
     this.uiManager.clearLog();
-    this.uiManager.log("v12 战斗开始：职业特性系统已启用，战士、游侠、哥布林和兽人拥有主动/被动特性。", "system");
+    this.uiManager.log("v13 战斗开始：完整行动经济已启用，动作、附赠动作、反应、疾走、脱离、闪避和机会攻击可用。", "system");
     for (const unit of this.turnManager.initiativeOrder) {
       this.uiManager.log(`${unit.name} 先攻：d20(${unit.initiativeRoll}) + 敏捷修正${unit.initiativeBonus >= 0 ? "+" + unit.initiativeBonus : unit.initiativeBonus} = ${unit.initiativeTotal}`, unit.team);
     }
@@ -179,8 +181,24 @@ export class BattleManager {
   queueDefend() {
     if (this.battleEnded || this.inputLocked) return;
     const unit = this.currentUnit;
-    if (!unit || unit.team !== TEAM.PLAYER || unit.hasAttacked || unit.hasDefended) return;
-    this.pendingAction = { type: "defend", unit, label: `确认让 ${unit.name} 采取防御动作？本回合动作会被消耗，AC +2。` };
+    if (!unit || unit.team !== TEAM.PLAYER || !unit.actionAvailable || unit.hasDefended) return;
+    this.pendingAction = { type: "defend", unit, label: `确认让 ${unit.name} 采取闪避动作？消耗动作；攻击者对其攻击具有劣势，且 AC +2。` };
+    this.render();
+  }
+
+  queueDash() {
+    if (this.battleEnded || this.inputLocked) return;
+    const unit = this.currentUnit;
+    if (!unit || unit.team !== TEAM.PLAYER || !unit.actionAvailable) return;
+    this.pendingAction = { type: "dash", unit, label: `确认让 ${unit.name} 疾走？消耗动作，额外获得 ${unit.move} 格移动力。` };
+    this.render();
+  }
+
+  queueDisengage() {
+    if (this.battleEnded || this.inputLocked) return;
+    const unit = this.currentUnit;
+    if (!unit || unit.team !== TEAM.PLAYER || !unit.actionAvailable) return;
+    this.pendingAction = { type: "disengage", unit, label: `确认让 ${unit.name} 脱离？消耗动作，本回合移动不会触发机会攻击。` };
     this.render();
   }
 
@@ -192,6 +210,8 @@ export class BattleManager {
     if (action.type === "attack") this.tryAttack(action.attacker, action.target);
     if (action.type === "skill") this.trySkill(action.attacker, action.target, action.skill);
     if (action.type === "defend") this.tryDefend(action.unit);
+    if (action.type === "dash") this.tryDash(action.unit);
+    if (action.type === "disengage") this.tryDisengage(action.unit);
   }
 
   cancelPendingAction() {
@@ -205,15 +225,18 @@ export class BattleManager {
     this.inputLocked = true;
     this.previewPath = action.path;
     for (const step of action.path) {
+      await this.resolveOpportunityAttacksBeforeStep(unit, step);
+      if (!unit.isAlive) break;
       unit.x = step.x;
       unit.y = step.y;
       this.previewPath = action.path.slice(step.cost);
       this.render();
       await sleep(ANIMATION_STEP_MS);
     }
-    this.gridManager.consumeMove(unit, action.cost);
+    if (unit.isAlive) this.gridManager.consumeMove(unit, action.cost);
     this.previewPath = null;
-    this.uiManager.log(`${unit.name} 沿路径移动到 (${action.x}, ${action.y})，消耗 ${action.cost} 格移动`, unit.team);
+    if (unit.isAlive) this.uiManager.log(`${unit.name} 沿路径移动到 (${unit.x}, ${unit.y})，消耗 ${action.cost} 格移动`, unit.team);
+    else this.uiManager.log(`${unit.name} 在移动中被击倒，移动中止。`, "system");
     this.inputLocked = false;
     this.render();
   }
@@ -235,8 +258,42 @@ export class BattleManager {
   tryDefend(unit = this.currentUnit) {
     if (!unit || this.battleEnded || this.inputLocked) return;
     if (unit.defend()) {
-      this.uiManager.log(`${unit.name} 采取防御动作：直到下次行动前 AC +2。`, unit.team);
+      this.uiManager.log(`${unit.name} 采取闪避动作：直到下次行动前 AC +2，攻击者对其攻击具有劣势。`, unit.team);
       this.render();
+    }
+  }
+
+  tryDash(unit = this.currentUnit) {
+    if (!unit || this.battleEnded || this.inputLocked) return;
+    if (unit.dash()) {
+      this.uiManager.log(`${unit.name} 使用疾走动作：本回合额外获得 ${unit.move} 格移动力。`, unit.team);
+      this.render();
+    }
+  }
+
+  tryDisengage(unit = this.currentUnit) {
+    if (!unit || this.battleEnded || this.inputLocked) return;
+    if (unit.disengage()) {
+      this.uiManager.log(`${unit.name} 使用脱离动作：本回合移动不会触发机会攻击。`, unit.team);
+      this.render();
+    }
+  }
+
+  async resolveOpportunityAttacksBeforeStep(unit, nextStep) {
+    if (unit.isDisengaging) return;
+    const enemies = this.units.filter(other => other.isAlive && other.team !== unit.team && this.combatSystem.canOpportunityAttack(other, unit));
+    for (const enemy of enemies) {
+      const currentDistance = this.gridManager.getDistance(enemy, unit);
+      const nextDistance = this.gridManager.getDistance(enemy, nextStep);
+      if (currentDistance <= enemy.attackRange && nextDistance > enemy.attackRange) {
+        this.uiManager.log(`${unit.name} 离开 ${enemy.name} 的近战范围，触发机会攻击！`, "reaction");
+        const result = this.combatSystem.opportunityAttack(enemy, unit);
+        this.handleActionResult(result);
+        this.checkBattleEnd();
+        this.render();
+        await sleep(ANIMATION_STEP_MS);
+        if (!unit.isAlive || this.battleEnded) break;
+      }
     }
   }
 
@@ -274,9 +331,10 @@ export class BattleManager {
 
   handleAttackResult(result) {
     if (!result.success) { this.uiManager.log(result.reason, "system"); return; }
-    const { attacker, target, d20, attackBonus, attackTotal, targetAc, hit, damage, killed, critical, naturalOne, skill, pushed, statusEffect, featureNotes } = result;
-    const actionName = skill ? `使用 ${skill.name} 攻击` : "攻击";
-    this.uiManager.log(`${attacker.name} ${actionName} ${target.name}：d20(${d20}) + ${attackBonus} = ${attackTotal} vs AC ${targetAc}`, attacker.team);
+    const { attacker, target, d20, rollInfo, attackBonus, attackTotal, targetAc, hit, damage, killed, critical, naturalOne, skill, pushed, statusEffect, featureNotes, specialKind } = result;
+    const actionName = specialKind === "opportunity" ? "进行机会攻击" : skill ? `使用 ${skill.name} 攻击` : "攻击";
+    const rollText = rollInfo?.mode === "disadvantage" ? `d20劣势(${rollInfo.rolls.join(", ")}取${d20})` : `d20(${d20})`;
+    this.uiManager.log(`${attacker.name} ${actionName} ${target.name}：${rollText} + ${attackBonus} = ${attackTotal} vs AC ${targetAc}`, attacker.team);
     if (naturalOne) { this.uiManager.log("自然 1：大失败，必定未命中。", "crit"); if (skill) this.logSkillCost(attacker, skill); return; }
     if (critical) this.uiManager.log("自然 20：重击！必定命中，伤害骰翻倍。", "crit");
     if (hit) {
@@ -309,7 +367,7 @@ export class BattleManager {
     this.previewPath = null;
     this.pendingAction = null;
     if (next) {
-      this.uiManager.log(`轮到 ${next.name}`, "turn");
+      this.uiManager.log(`轮到 ${next.name}：动作、附赠动作、反应刷新。`, "turn");
       this.processTurnStartStatus(next);
       this.checkBattleEnd();
     }
@@ -339,10 +397,21 @@ export class BattleManager {
     let action = this.enemyAI.chooseAction(enemy, this.units);
     if (action.type === "move" && action.movePlan) {
       const target = action.target;
-      for (const step of action.movePlan.path) { enemy.x = step.x; enemy.y = step.y; this.render(); await sleep(ANIMATION_STEP_MS); }
-      this.gridManager.consumeMove(enemy, action.movePlan.cost);
-      this.uiManager.log(`${enemy.name} 向 ${target.name} 靠近，消耗 ${action.movePlan.cost} 格移动`, "enemy");
-      action = this.enemyAI.chooseAction(enemy, this.units);
+      for (const step of action.movePlan.path) {
+        await this.resolveOpportunityAttacksBeforeStep(enemy, step);
+        if (!enemy.isAlive) break;
+        enemy.x = step.x;
+        enemy.y = step.y;
+        this.render();
+        await sleep(ANIMATION_STEP_MS);
+      }
+      if (enemy.isAlive) {
+        this.gridManager.consumeMove(enemy, action.movePlan.cost);
+        this.uiManager.log(`${enemy.name} 向 ${target.name} 靠近，消耗 ${action.movePlan.cost} 格移动`, "enemy");
+        action = this.enemyAI.chooseAction(enemy, this.units);
+      } else {
+        action = { type: "none" };
+      }
     }
     if (action.type === "skill") this.handleActionResult(this.skillSystem.useSkill(enemy, action.target, action.skill, this.units));
     else if (action.type === "attack") this.handleActionResult(this.combatSystem.attack(enemy, action.target));
