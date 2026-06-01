@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DND 战棋战斗 Demo v18</title>
+  <title>DND 战棋战斗 Demo v18.1</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
@@ -12,35 +12,10 @@
       <div id="turnBanner" class="turn-banner"></div>
       <canvas id="battleCanvas" width="640" height="640"></canvas>
       <div id="tooltip" class="tooltip hidden"></div>
-      <details class="debug-panel" id="debugPanel" open>
-        <summary>v18 Debug / 地图编辑工具</summary>
-        <div class="debug-toolbar">
-          <label><input type="checkbox" id="dbgCoords" checked> 坐标</label>
-          <label><input type="checkbox" id="dbgTerrain" checked> 地形</label>
-          <label><input type="checkbox" id="dbgMoveCost"> 移动成本</label>
-          <label><input type="checkbox" id="dbgReachable"> 可达格</label>
-          <label><input type="checkbox" id="dbgEditMode"> 编辑地形</label>
-        </div>
-        <div class="debug-toolbar">
-          <select id="dbgTerrainSelect">
-            <option value="0">普通地形</option>
-            <option value="1">障碍物</option>
-            <option value="2">困难地形</option>
-            <option value="3">伤害地形</option>
-            <option value="4">治疗地形</option>
-            <option value="5">目标区域</option>
-          </select>
-          <button id="dbgRefresh">刷新数据</button>
-          <button id="dbgCopyLevel">复制关卡 JSON</button>
-          <button id="dbgDownloadLevel">下载 JSON</button>
-        </div>
-        <div id="debugInfo" class="debug-info"></div>
-        <textarea id="debugOutput" class="debug-output" readonly placeholder="这里会显示当前单位、格子、寻路和关卡 JSON"></textarea>
-      </details>
     </div>
     <aside class="panel">
-      <h1>DND 2D 战棋 Demo v18</h1>
-      <div class="hint">v18 新增：Debug 面板、地形/寻路调试、简易地图编辑和 JSON 导出。</div>
+      <h1>DND 2D 战棋 Demo v18.1</h1>
+      <div class="hint">v18.1 新增：出生点编辑器、单位属性编辑器、Debug 导出工具。</div>
       <div class="level-info" id="levelInfo"></div>
       <div class="status" id="status"></div>
       <div class="actions">
@@ -57,6 +32,76 @@
       <h2>先攻顺序</h2><div class="initiative-list" id="initiativeList"></div>
       <h2>单位</h2><div class="unit-list" id="unitList"></div>
       <h2>战斗日志</h2><div class="log" id="log"></div>
+      <details class="debug-panel" open>
+        <summary>Debug / 地图与数据编辑器</summary>
+        <div class="debug-toolbar">
+          <label><input type="checkbox" id="dbgCoords" checked>坐标</label>
+          <label><input type="checkbox" id="dbgTerrain" checked>地形ID</label>
+          <label><input type="checkbox" id="dbgMoveCost">移动成本</label>
+          <label><input type="checkbox" id="dbgReachable">可达格</label>
+          <label><input type="checkbox" id="dbgEditMode">启用编辑</label>
+        </div>
+        <div class="debug-toolbar">
+          <label>编辑模式
+            <select id="dbgEditKind">
+              <option value="terrain">地形</option>
+              <option value="playerSpawn">玩家出生点</option>
+              <option value="enemySpawn">敌人出生点</option>
+            </select>
+          </label>
+          <label>地形
+            <select id="dbgTerrainSelect">
+              <option value="0">普通</option>
+              <option value="1">障碍</option>
+              <option value="2">困难</option>
+              <option value="3">伤害</option>
+              <option value="4">治疗</option>
+              <option value="5">目标区域</option>
+            </select>
+          </label>
+          <label>出生单位
+            <select id="dbgSpawnUnitSelect"></select>
+          </label>
+          <button id="dbgRefresh">刷新 Debug</button>
+        </div>
+        <div class="debug-toolbar">
+          <label>编辑单位
+            <select id="dbgUnitSelect"></select>
+          </label>
+          <button id="dbgLoadUnit">读取单位</button>
+          <button id="dbgApplyUnit">应用属性</button>
+          <button id="dbgCopyUnits">复制单位 JSON</button>
+          <button id="dbgDownloadUnits">下载单位 JSON</button>
+        </div>
+        <div class="unit-editor-grid">
+          <label>名称<input id="unitNameInput"></label>
+          <label>阵营<select id="unitTeamInput"><option value="player">player</option><option value="enemy">enemy</option></select></label>
+          <label>职业/类型<input id="unitClassInput"></label>
+          <label>等级<input id="unitLevelInput" type="number" min="1" max="20"></label>
+          <label>HP<input id="unitHpInput" type="number" min="0"></label>
+          <label>Max HP<input id="unitMaxHpInput" type="number" min="1"></label>
+          <label>AC<input id="unitAcInput" type="number" min="1"></label>
+          <label>移动<input id="unitMoveInput" type="number" min="0"></label>
+          <label>熟练<input id="unitProfInput" type="number" min="0"></label>
+          <label>伤害骰<input id="unitDamageDiceInput"></label>
+          <label>攻击属性<select id="unitAttackAbilityInput"><option>STR</option><option>DEX</option><option>CON</option><option>INT</option><option>WIS</option><option>CHA</option></select></label>
+          <label>伤害属性<select id="unitDamageAbilityInput"><option>STR</option><option>DEX</option><option>CON</option><option>INT</option><option>WIS</option><option>CHA</option></select></label>
+          <label>STR<input id="unitStrInput" type="number" min="1" max="30"></label>
+          <label>DEX<input id="unitDexInput" type="number" min="1" max="30"></label>
+          <label>CON<input id="unitConInput" type="number" min="1" max="30"></label>
+          <label>INT<input id="unitIntInput" type="number" min="1" max="30"></label>
+          <label>WIS<input id="unitWisInput" type="number" min="1" max="30"></label>
+          <label>CHA<input id="unitChaInput" type="number" min="1" max="30"></label>
+        </div>
+        <p class="debug-note">出生点编辑：勾选“启用编辑”，选择玩家/敌人出生点模式，再点击棋盘放置。右键棋盘上的出生点可删除。单位属性编辑为运行时编辑，可通过导出 JSON 持久化。</p>
+        <div class="debug-info" id="debugInfo"></div>
+        <div class="debug-toolbar">
+          <button id="dbgCopyLevel">复制关卡 JSON</button>
+          <button id="dbgDownloadLevel">下载关卡 JSON</button>
+        </div>
+        <textarea class="debug-output" id="debugOutput" spellcheck="false"></textarea>
+      </details>
+
     </aside>
   </div>
   <script type="module" src="./src/main.js"></script>
