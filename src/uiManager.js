@@ -52,10 +52,10 @@ export class UIManager {
     this.nextLevelBtn?.addEventListener("click", onNextLevel);
   }
 
-  render({ units, initiativeOrder, currentUnit, mode, battleEnded, availableSkills, selectedSkillId, skillSystem, inputLocked, pendingAction, level, levelIndex, levelCount }) {
+  render({ units, initiativeOrder, currentUnit, mode, battleEnded, availableSkills, selectedSkillId, skillSystem, inputLocked, pendingAction, inspectUnit, level, levelIndex, levelCount }) {
     this.renderLevelInfo(level, levelIndex, levelCount);
     this.renderTurnBanner(currentUnit, mode, selectedSkillId, availableSkills, battleEnded, inputLocked);
-    this.renderStatus(currentUnit, mode, selectedSkillId, availableSkills);
+    this.renderStatus(currentUnit, mode, selectedSkillId, availableSkills, inspectUnit);
     this.renderConfirmPanel(pendingAction);
     this.renderSkills(currentUnit, availableSkills, selectedSkillId, battleEnded, skillSystem, inputLocked);
     this.renderInitiativeList(initiativeOrder, currentUnit);
@@ -102,28 +102,30 @@ export class UIManager {
     return badges.length ? `<div class="status-badges">${badges.join("")}</div>` : `<div class="status-badges"><span class="status-badge">无状态</span></div>`;
   }
 
-  renderStatus(currentUnit, mode, selectedSkillId, availableSkills) {
+  renderStatus(currentUnit, mode, selectedSkillId, availableSkills, inspectUnit = null) {
     if (!currentUnit) { this.statusEl.innerHTML = "无当前单位"; return; }
+    const displayUnit = inspectUnit || currentUnit;
+    const isInspecting = Boolean(inspectUnit && inspectUnit !== currentUnit);
     const selectedSkill = availableSkills.find(skill => skill.id === selectedSkillId);
     const modeText = mode === ACTION_MODE.MOVE ? "移动" : mode === ACTION_MODE.ATTACK ? "攻击" : `技能${selectedSkill ? `：${selectedSkill.name}` : ""}`;
-    const defendText = currentUnit.isDefending ? "（防御中，AC +2）" : "";
-    const conditionPrefix = currentUnit.isProne ? ["倒地"] : [];
-    const statusText = currentUnit.statusEffects.length || conditionPrefix.length
-      ? [...conditionPrefix, ...currentUnit.statusEffects.map(effect => `${effect.name}(${effect.duration})`)].join("、")
+    const defendText = displayUnit.isDefending ? "（防御中，AC +2）" : "";
+    const conditionPrefix = displayUnit.isProne ? ["倒地"] : [];
+    const statusText = displayUnit.statusEffects.length || conditionPrefix.length
+      ? [...conditionPrefix, ...displayUnit.statusEffects.map(effect => `${effect.name}(${effect.duration})`)].join("、")
       : "无";
     this.statusEl.innerHTML = `
-      <strong>当前回合：</strong><span class="${currentUnit.team}">${currentUnit.name}</span><br>
-      <strong>阵营：</strong>${currentUnit.team === TEAM.PLAYER ? "玩家" : "敌人"}<br>
-      <strong>HP：</strong>${currentUnit.hp}/${currentUnit.maxHp}　<strong>AC：</strong>${currentUnit.effectiveAc}${defendText}<br>
-      <strong>状态：</strong>${statusText}${this.renderStatusBadges(currentUnit)}
-      <strong>行动经济：</strong>动作 ${currentUnit.actionAvailable ? "可用" : "已用"}｜附赠动作 ${currentUnit.bonusActionAvailable ? "可用" : "已用"}｜反应 ${currentUnit.reactionAvailable ? "可用" : "已用"}<br>
-      <strong>剩余移动：</strong>${currentUnit.remainingMove}/${currentUnit.move}<br>
-      <strong>普通攻击：</strong>+${currentUnit.effectiveAttackBonus}，${currentUnit.damageDice}，范围 ${currentUnit.attackRange}<br>
-      <strong>职业特性：</strong>${featureText(currentUnit)}<br>
-      <strong>施法：</strong>${currentUnit.spellcastingAbility ? `${currentUnit.spellcastingAbility}｜法术攻击 +${currentUnit.getSpellAttackBonus()}｜法术 DC ${currentUnit.spellSaveDC}｜法术位 ${currentUnit.getSpellSlotText()}` : "无"}<br>
-      <strong>先攻：</strong>${currentUnit.initiativeRoll} + ${currentUnit.initiativeBonus} = ${currentUnit.initiativeTotal}<br>
-      <strong>模式：</strong>${modeText}<br>
-      <strong>属性：</strong>${ABILITIES.map(a => `${a} ${currentUnit.abilities?.[a] ?? 10}(${formatModifier(currentUnit.getAbilityModifier ? currentUnit.getAbilityModifier(a) : 0)})`).join(" ")}
+      <strong>${isInspecting ? "选中单位" : "当前回合"}：</strong><span class="${displayUnit.team}">${displayUnit.name}</span><br>
+      <strong>阵营：</strong>${displayUnit.team === TEAM.PLAYER ? "玩家" : "敌人"}<br>
+      <strong>HP：</strong>${displayUnit.hp}/${displayUnit.maxHp}　<strong>AC：</strong>${displayUnit.effectiveAc}${defendText}<br>
+      <strong>状态：</strong>${statusText}${this.renderStatusBadges(displayUnit)}
+      <strong>行动经济：</strong>动作 ${displayUnit.actionAvailable ? "可用" : "已用"}｜附赠动作 ${displayUnit.bonusActionAvailable ? "可用" : "已用"}｜反应 ${displayUnit.reactionAvailable ? "可用" : "已用"}<br>
+      <strong>剩余移动：</strong>${displayUnit.remainingMove}/${displayUnit.move}<br>
+      <strong>普通攻击：</strong>+${displayUnit.effectiveAttackBonus}，${displayUnit.damageDice}，范围 ${displayUnit.attackRange}<br>
+      <strong>职业特性：</strong>${featureText(displayUnit)}<br>
+      <strong>施法：</strong>${displayUnit.spellcastingAbility ? `${displayUnit.spellcastingAbility}｜法术攻击 +${displayUnit.getSpellAttackBonus()}｜法术 DC ${displayUnit.spellSaveDC}｜法术位 ${displayUnit.getSpellSlotText()}` : "无"}<br>
+      <strong>先攻：</strong>${displayUnit.initiativeRoll} + ${displayUnit.initiativeBonus} = ${displayUnit.initiativeTotal}<br>
+      <strong>模式：</strong>${modeText}<br>${isInspecting ? `<strong>当前回合：</strong><span class="${currentUnit.team}">${currentUnit.name}</span><br>` : ""}
+      <strong>属性：</strong>${ABILITIES.map(a => `${a} ${displayUnit.abilities?.[a] ?? 10}(${formatModifier(displayUnit.getAbilityModifier ? displayUnit.getAbilityModifier(a) : 0)})`).join(" ")}
     `;
   }
 
@@ -212,11 +214,11 @@ ${skill.isSpell ? `法术：${skill.spellLevel === 0 ? "戏法" : `${skill.spell
 
   renderUnitList(units, currentUnit) {
     this.unitListEl.innerHTML = units.map(unit => `
-      <div class="unit-card unit-card-with-avatar ${unit === currentUnit ? "active" : ""} ${!unit.isAlive ? "dead" : ""}">
+      <div class="unit-card unit-card-with-avatar compact-unit ${unit === currentUnit ? "active" : ""} ${!unit.isAlive ? "dead" : ""}">
         ${unit.avatar ? `<img class="unit-avatar" src="${unit.avatar}" alt="${unit.name}">` : ""}
-        <div>
-          <strong class="${unit.team}">${unit.name}</strong><br>
-          HP ${unit.hp}/${unit.maxHp} | ${unit.className || "无职业"} Lv.${unit.level || 1} | AC ${unit.effectiveAc} | 攻击 ${formatModifier(unit.effectiveAttackBonus)} | 先攻 ${formatModifier(unit.initiativeBonus || 0)}${unit.isDefending ? " | 防御中" : ""}${unit.isProne ? " | 倒地" : ""}<br><span class="ability-line">职业特性：${featureText(unit)}</span><br>${unit.spellcastingAbility ? `<span class="ability-line">施法 ${unit.spellcastingAbility} | 法攻 ${formatModifier(unit.getSpellAttackBonus())} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}</span><br>` : ""}<span class="ability-line">${ABILITIES.map(a => `${a} ${unit.abilities?.[a] ?? 10}(${formatModifier(unit.getAbilityModifier ? unit.getAbilityModifier(a) : 0)})`).join(" ")}</span>
+        <div class="unit-summary-body">
+          <div><strong class="${unit.team}">${unit.name}</strong> <span class="mini-tag">${unit.className || "无职业"} Lv.${unit.level || 1}</span></div>
+          <div class="unit-line">HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc} | 攻击 ${formatModifier(unit.effectiveAttackBonus)}</div>
           <div class="unit-hpbar"><div class="unit-hpbar-inner" style="width:${Math.max(0, Math.min(100, Math.round(unit.hp / unit.maxHp * 100)))}%"></div></div>
           ${this.renderStatusBadges(unit)}
         </div>

@@ -3,40 +3,94 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DND 战棋战斗 Demo v18.2.2</title>
+  <title>DND 战棋战斗 Demo v18.2.4</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
-<body>
-  <div class="app">
-    <div class="board-wrap">
-      <div id="turnBanner" class="turn-banner"></div>
-      <canvas id="battleCanvas" width="640" height="640"></canvas>
-      <div id="tooltip" class="tooltip hidden"></div>
-    </div>
-    <aside class="panel">
-      <h1>DND 2D 战棋 Demo v18.2</h1>
-      <div class="hint">v18.2.2：游玩界面默认隐藏坐标、地形 ID、移动成本等调试地图信息。</div>
-      <div class="level-info" id="levelInfo"></div>
-      <div class="status" id="status"></div>
-      <div class="actions">
-        <button id="moveBtn">移动模式</button>
-        <button id="attackBtn">攻击模式</button>
-        <button id="skillBtn">技能模式</button>
-        <button id="defendBtn">防御动作</button>
-        <button id="endTurnBtn">结束回合</button>
-        <button id="restartBtn">重新开始</button>
-        <button id="nextLevelBtn">下一关</button>
-      </div>
-      <h2>行动确认</h2><div class="confirm-panel" id="confirmPanel"></div>
-      <h2>技能</h2><div class="skill-list" id="skillList"></div>
-      <h2>先攻顺序</h2><div class="initiative-list" id="initiativeList"></div>
-      <h2>单位</h2><div class="unit-list" id="unitList"></div>
-      <h2>战斗日志</h2><div class="log" id="log"></div>
-      <div class="top-links"><a href="./editor.html">打开数据编辑器</a></div>
+<body class="play-page">
+  <header class="play-topbar">
+    <div class="brand"><span class="brand-mark">✦</span><span>DND BATTLECAST</span></div>
+    <nav class="play-nav">
+      <button id="restartBtn" class="nav-btn primary">Start Battle</button>
+      <button id="nextLevelBtn" class="nav-btn">Next Level</button>
+      <a class="nav-link" href="./editor.html">Editor</a>
+    </nav>
+  </header>
 
+  <main class="battle-layout">
+    <aside class="left-dock">
+      <section class="dock-card team-card">
+        <div class="team-tabs">
+          <span class="team-tab red active">玩家队伍</span>
+          <span class="team-tab blue">敌人队伍</span>
+        </div>
+        <div class="level-info compact" id="levelInfo"></div>
+      </section>
 
+      <section class="dock-card">
+        <h2>行动</h2>
+        <div class="actions battle-actions">
+          <button id="moveBtn">移动</button>
+          <button id="attackBtn">攻击</button>
+          <button id="skillBtn">技能/法术</button>
+          <button id="defendBtn">防御</button>
+          <button id="endTurnBtn" class="wide">结束回合</button>
+        </div>
+      </section>
+
+      <section class="dock-card scroll-card">
+        <h2>单位</h2>
+        <div class="unit-list" id="unitList"></div>
+      </section>
     </aside>
-  </div>
+
+    <section class="center-stage">
+      <div class="stage-toolbar">
+        <div id="turnBanner" class="turn-banner"></div>
+        <div class="stage-chips">
+          <span>10×10</span>
+          <span>88%</span>
+          <span>Terrain off</span>
+        </div>
+      </div>
+      <div class="board-frame">
+        <canvas id="battleCanvas" width="640" height="640"></canvas>
+        <div id="tooltip" class="tooltip hidden"></div>
+      </div>
+      <div class="team-summary">
+        <span class="red-text">Red: 玩家角色</span>
+        <span>vs</span>
+        <span class="blue-text">Blue: 怪物遭遇</span>
+      </div>
+    </section>
+
+    <aside class="right-dock">
+      <section class="dock-card status-card">
+        <h2>当前单位</h2>
+        <div class="status" id="status"></div>
+      </section>
+
+      <section class="dock-card">
+        <h2>行动确认</h2>
+        <div class="confirm-panel" id="confirmPanel"></div>
+      </section>
+
+      <section class="dock-card scroll-card skill-dock">
+        <h2>技能 / 法术</h2>
+        <div class="skill-list" id="skillList"></div>
+      </section>
+
+      <section class="dock-card">
+        <h2>先攻顺序</h2>
+        <div class="initiative-list" id="initiativeList"></div>
+      </section>
+
+      <section class="dock-card log-card">
+        <div class="log-tabs"><span class="active">Battle Log</span><span>Stat Block</span></div>
+        <div class="log" id="log"></div>
+      </section>
+    </aside>
+  </main>
+
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>

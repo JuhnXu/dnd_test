@@ -22,7 +22,8 @@ export class BattleManager {
     this.previewPath = null;
     this.hoverTile = null;
     this.pendingAction = null;
-    this.compactPlayUI = false;
+    this.inspectUnit = null;
+    this.compactPlayUI = true;
     this.gridManager = new GridManager(this.units);
     this.combatSystem = new CombatSystem(this.gridManager);
     this.skillSystem = new SkillSystem(this.gridManager, SKILLS);
@@ -85,6 +86,7 @@ export class BattleManager {
     this.previewPath = null;
     this.hoverTile = null;
     this.pendingAction = null;
+    this.inspectUnit = null;
     this.uiManager.clearLog();
     this.uiManager.log(`v18 调试版关卡开始：${level?.name || "未命名关卡"}。${level?.description || ""}`, "system");
     for (const unit of this.turnManager.initiativeOrder) {
@@ -101,11 +103,17 @@ export class BattleManager {
 
   getTileFromEvent(event) {
     const rect = this.canvas.getBoundingClientRect();
+    const localX = event.clientX - rect.left;
+    const localY = event.clientY - rect.top;
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    const canvasX = localX * scaleX;
+    const canvasY = localY * scaleY;
     return {
-      x: Math.floor((event.clientX - rect.left) / TILE_SIZE),
-      y: Math.floor((event.clientY - rect.top) / TILE_SIZE),
-      px: event.clientX - rect.left,
-      py: event.clientY - rect.top,
+      x: Math.floor(canvasX / TILE_SIZE),
+      y: Math.floor(canvasY / TILE_SIZE),
+      px: localX,
+      py: localY,
     };
   }
 
@@ -165,6 +173,8 @@ export class BattleManager {
     if (!current || current.team !== TEAM.PLAYER) return;
     const { x, y } = this.getTileFromEvent(event);
     if (!this.gridManager.isInsideGrid(x, y)) return;
+    const clickedUnit = this.gridManager.getUnitAt(x, y);
+    this.inspectUnit = clickedUnit || null;
 
     if (this.isRepeatClickConfirm(x, y)) {
       this.confirmPendingAction();
@@ -173,7 +183,7 @@ export class BattleManager {
 
     if (this.mode === ACTION_MODE.MOVE) this.queueMove(current, x, y);
     if (this.mode === ACTION_MODE.ATTACK) {
-      const target = this.gridManager.getUnitAt(x, y);
+      const target = clickedUnit;
       if (target && this.combatSystem.canAttack(current, target)) this.pendingAction = { type: "attack", attacker: current, target, label: `确认让 ${current.name} 普通攻击 ${target.name}？再次点击 ${target.name} 可直接确认。` };
     }
     if (this.mode === ACTION_MODE.SKILL && this.selectedSkill) {
@@ -185,7 +195,7 @@ export class BattleManager {
           this.pendingAction = { type: "skill", attacker: current, target: center, center, skill, label: `确认使用 ${skill.name} 指向 (${x}, ${y})？将影响 ${count} 个敌人。再次点击该格可直接确认。` };
         }
       } else {
-        const target = this.gridManager.getUnitAt(x, y);
+        const target = clickedUnit;
         if (target && this.skillSystem.canUseSkill(current, target, skill)) this.pendingAction = { type: "skill", attacker: current, target, skill, label: `确认让 ${current.name} 对 ${target.name} 使用 ${skill.name}？再次点击 ${target.name} 可直接确认。` };
       }
     }
@@ -531,6 +541,7 @@ export class BattleManager {
       skillSystem: this.skillSystem,
       inputLocked: this.inputLocked,
       pendingAction: this.pendingAction,
+      inspectUnit: this.inspectUnit,
       level: getCurrentLevel(),
       levelIndex: CURRENT_LEVEL_INDEX,
       levelCount: getLevelCount(),
