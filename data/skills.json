@@ -107,5 +107,68 @@
     "endsAttack": true,
     "cooldown": 3,
     "maxUses": 2
+  },
+  {
+    "id": "action_surge",
+    "name": "动作如潮",
+    "type": "extraAction",
+    "targetType": "self",
+    "description": "战士职业特性：本回合立刻恢复一次动作，可再次攻击、施法或使用技能。",
+    "range": 0,
+    "endsAttack": false,
+    "cooldown": 0,
+    "maxUses": 1
+  },
+  {
+    "id": "hunters_mark",
+    "name": "猎人印记",
+    "type": "debuff",
+    "targetType": "enemy",
+    "description": "游侠职业特性：标记 6 格内敌人，持续 3 回合。游侠攻击被标记目标时额外造成 1d6 伤害。",
+    "range": 6,
+    "statusEffect": {
+      "id": "hunters_marked",
+      "name": "猎人印记",
+      "duration": 3,
+      "markedBy": "self",
+      "extraDamageDice": "1d6"
+    },
+    "endsAttack": false,
+    "cooldown": 0,
+    "maxUses": 2
+  },
+  {
+    "id": "nimble_escape",
+    "name": "灵巧撤离",
+    "type": "buff",
+    "targetType": "self",
+    "description": "哥布林怪物特性：快速脱离危险，获得闪避状态，AC +2，持续到下次行动开始。",
+    "range": 0,
+    "statusEffect": {
+      "id": "nimble_escape",
+      "name": "灵巧撤离",
+      "duration": 1,
+      "acModifier": 2
+    },
+    "endsAttack": false,
+    "cooldown": 2,
+    "maxUses": 2
+  },
+  {
+    "id": "orc_aggression",
+    "name": "凶蛮冲锋",
+    "type": "buff",
+    "targetType": "self",
+    "description": "兽人怪物特性：激发凶蛮本能，攻击 +1，持续 2 回合。",
+    "range": 0,
+    "statusEffect": {
+      "id": "orc_aggression",
+      "name": "凶蛮冲锋",
+      "duration": 2,
+      "attackBonusModifier": 1
+    },
+    "endsAttack": false,
+    "cooldown": 3,
+    "maxUses": 1
   }
 ]

@@ -14,7 +14,8 @@
     "initiativeBonus": 1,
     "skills": [
       "power_attack",
-      "second_wind"
+      "second_wind",
+      "action_surge"
     ],
     "saveBonus": 1,
     "avatar": "./assets/tokens/fighter.png",
@@ -35,7 +36,11 @@
     "saveProficiencies": [
       "CON"
     ],
-    "skillAbility": "STR"
+    "skillAbility": "STR",
+    "classFeatures": [
+      "second_wind_feature",
+      "action_surge_feature"
+    ]
   },
   {
     "id": "p2",
@@ -56,7 +61,8 @@
       "explosive_arrow",
       "fire_bolt",
       "healing_word",
-      "burning_hands"
+      "burning_hands",
+      "hunters_mark"
     ],
     "saveBonus": 3,
     "avatar": "./assets/tokens/ranger.png",
@@ -84,7 +90,15 @@
         "max": 2,
         "remaining": 2
       }
-    }
+    },
+    "classFeatures": [
+      "favored_enemy_feature",
+      "hunters_mark_feature"
+    ],
+    "favoredEnemyTypes": [
+      "goblin",
+      "orc"
+    ]
   },
   {
     "id": "e1",
@@ -100,7 +114,8 @@
     "attackRange": 1,
     "initiativeBonus": 2,
     "skills": [
-      "dirty_stab"
+      "dirty_stab",
+      "nimble_escape"
     ],
     "saveBonus": 2,
     "avatar": "./assets/tokens/goblin_a.png",
@@ -121,7 +136,10 @@
     "saveProficiencies": [
       "DEX"
     ],
-    "skillAbility": "DEX"
+    "skillAbility": "DEX",
+    "classFeatures": [
+      "nimble_escape_feature"
+    ]
   },
   {
     "id": "e2",
@@ -138,7 +156,8 @@
     "initiativeBonus": 2,
     "skills": [
       "dirty_stab",
-      "shadow_bolt"
+      "shadow_bolt",
+      "nimble_escape"
     ],
     "saveBonus": 2,
     "avatar": "./assets/tokens/goblin_b.png",
@@ -161,7 +180,10 @@
     ],
     "skillAbility": "DEX",
     "spellcastingAbility": "INT",
-    "spellSlots": {}
+    "spellSlots": {},
+    "classFeatures": [
+      "nimble_escape_feature"
+    ]
   },
   {
     "id": "e3",
@@ -177,7 +199,8 @@
     "attackRange": 1,
     "initiativeBonus": 1,
     "skills": [
-      "heavy_cleave"
+      "heavy_cleave",
+      "orc_aggression"
     ],
     "saveBonus": 0,
     "avatar": "./assets/tokens/orc.png",
@@ -198,6 +221,10 @@
     "saveProficiencies": [
       "CON"
     ],
-    "skillAbility": "STR"
+    "skillAbility": "STR",
+    "classFeatures": [
+      "savage_attacks_feature",
+      "orc_aggression_feature"
+    ]
   }
 ]

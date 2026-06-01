@@ -77,7 +77,7 @@ export class BattleManager {
     this.hoverTile = null;
     this.pendingAction = null;
     this.uiManager.clearLog();
-    this.uiManager.log("v10 战斗开始：法术系统雏形已启用，法术攻击、法术 DC 与法术位会按施法属性计算。", "system");
+    this.uiManager.log("v12 战斗开始：职业特性系统已启用，战士、游侠、哥布林和兽人拥有主动/被动特性。", "system");
     for (const unit of this.turnManager.initiativeOrder) {
       this.uiManager.log(`${unit.name} 先攻：d20(${unit.initiativeRoll}) + 敏捷修正${unit.initiativeBonus >= 0 ? "+" + unit.initiativeBonus : unit.initiativeBonus} = ${unit.initiativeTotal}`, unit.team);
     }
@@ -247,9 +247,14 @@ export class BattleManager {
       this.uiManager.log(`${attacker.name} 使用 ${skill.name}，治疗 ${target.name} ${amount} 点 HP（${target.hp}/${target.maxHp}）。`, "heal");
       this.logSkillCost(attacker, skill); return;
     }
-    if (result.kind === "buff") {
+    if (result.kind === "buff" || result.kind === "debuff") {
       const { attacker, target, skill, statusEffect } = result;
-      this.uiManager.log(`${attacker.name} 使用 ${skill.name}，${target.name} 获得状态：${statusEffect.name}（持续 ${statusEffect.duration} 回合）。`, "buff");
+      this.uiManager.log(`${attacker.name} 使用 ${skill.name}，${target.name} 获得状态：${statusEffect.name}（持续 ${statusEffect.duration} 回合）。`, result.kind === "debuff" ? "damage" : "buff");
+      this.logSkillCost(attacker, skill); return;
+    }
+    if (result.kind === "extraAction") {
+      const { attacker, skill } = result;
+      this.uiManager.log(`${attacker.name} 使用职业特性 ${skill.name}：本回合恢复一次动作。`, "buff");
       this.logSkillCost(attacker, skill); return;
     }
     if (result.kind === "aoe") { this.handleAoeResult(result); return; }
@@ -269,14 +274,15 @@ export class BattleManager {
 
   handleAttackResult(result) {
     if (!result.success) { this.uiManager.log(result.reason, "system"); return; }
-    const { attacker, target, d20, attackBonus, attackTotal, targetAc, hit, damage, killed, critical, naturalOne, skill, pushed, statusEffect } = result;
+    const { attacker, target, d20, attackBonus, attackTotal, targetAc, hit, damage, killed, critical, naturalOne, skill, pushed, statusEffect, featureNotes } = result;
     const actionName = skill ? `使用 ${skill.name} 攻击` : "攻击";
     this.uiManager.log(`${attacker.name} ${actionName} ${target.name}：d20(${d20}) + ${attackBonus} = ${attackTotal} vs AC ${targetAc}`, attacker.team);
     if (naturalOne) { this.uiManager.log("自然 1：大失败，必定未命中。", "crit"); if (skill) this.logSkillCost(attacker, skill); return; }
     if (critical) this.uiManager.log("自然 20：重击！必定命中，伤害骰翻倍。", "crit");
     if (hit) {
       const extra = skill?.damageBonus ? `，包含技能额外 +${skill.damageBonus} 伤害` : "";
-      this.uiManager.log(`命中！造成 ${damage.total} 点伤害${extra}，${target.name} 剩余 HP ${target.hp}/${target.maxHp}`, "hit");
+      const featureText = featureNotes?.length ? `，职业特性：${featureNotes.join("、")}` : "";
+      this.uiManager.log(`命中！造成 ${damage.total} 点伤害${extra}${featureText}，${target.name} 剩余 HP ${target.hp}/${target.maxHp}`, "hit");
       if (statusEffect) this.uiManager.log(`${target.name} 获得状态：${statusEffect.name}（持续 ${statusEffect.duration} 回合）。`, "system");
       if (pushed) this.uiManager.log(`${target.name} 被推开 ${pushed} 格。`, "system");
       if (skill) this.logSkillCost(attacker, skill);

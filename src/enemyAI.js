@@ -8,6 +8,8 @@ export class EnemyAI {
   chooseAction(enemy, units) {
     const target = this.getNearestTarget(enemy, units);
     if (!target) return { type: "none" };
+    const selfSkill = this.getBestSelfSkill(enemy);
+    if (selfSkill) return { type: "skill", target: enemy, skill: selfSkill };
     const bestSkill = this.getBestUsableSkill(enemy, target);
     if (bestSkill) return { type: "skill", target, skill: bestSkill };
     if (this.combatSystem.canAttack(enemy, target)) return { type: "attack", target };
@@ -21,7 +23,15 @@ export class EnemyAI {
   }
 
   getBestUsableSkill(unit, target) {
-    return this.skillSystem.getUnitSkills(unit).find(skill => this.skillSystem.canUseSkill(unit, target, skill));
+    return this.skillSystem.getUnitSkills(unit)
+      .filter(skill => skill.targetType !== "self")
+      .find(skill => this.skillSystem.canUseSkill(unit, target, skill));
+  }
+
+  getBestSelfSkill(unit) {
+    return this.skillSystem.getUnitSkills(unit)
+      .filter(skill => skill.targetType === "self" && skill.type !== "heal")
+      .find(skill => this.skillSystem.canUseSkill(unit, unit, skill));
   }
 
   getNearestTarget(unit, units) {

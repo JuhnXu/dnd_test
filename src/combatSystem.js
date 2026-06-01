@@ -24,8 +24,22 @@ export class CombatSystem {
     if (hit) {
       const damage = Dice.rollDice(attacker.damageDice, critical ? 2 : 1);
       damage.total += attacker.damageAbilityModifier;
+      const featureNotes = [];
+      const favoredBonus = attacker.getDamageBonusAgainst?.(target) || 0;
+      if (favoredBonus) { damage.total += favoredBonus; featureNotes.push(`偏好敌人 +${favoredBonus}`); }
+      for (const dice of attacker.getExtraDamageDiceAgainst?.(target) || []) {
+        const extra = Dice.rollDice(dice, critical ? 2 : 1);
+        damage.total += extra.total;
+        featureNotes.push(`猎人印记 ${dice}=${extra.total}`);
+      }
+      if (critical && attacker.hasClassFeature?.("savage_attacks_feature")) {
+        const savage = Dice.rollDice(attacker.damageDice);
+        damage.total += savage.total;
+        featureNotes.push(`凶蛮重击 +${savage.total}`);
+      }
       target.takeDamage(damage.total);
       result.damage = damage;
+      result.featureNotes = featureNotes;
       result.killed = !target.isAlive;
     }
     attacker.hasAttacked = true;

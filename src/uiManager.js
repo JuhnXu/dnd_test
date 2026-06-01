@@ -1,6 +1,20 @@
 import { ACTION_MODE, TEAM } from "./config.js";
 import { ABILITIES, ABILITY_NAMES, formatModifier } from "./ability.js";
 
+const FEATURE_NAMES = {
+  second_wind_feature: "回气",
+  action_surge_feature: "动作如潮",
+  favored_enemy_feature: "偏好敌人",
+  hunters_mark_feature: "猎人印记",
+  nimble_escape_feature: "灵巧撤离",
+  savage_attacks_feature: "凶蛮重击",
+  orc_aggression_feature: "凶蛮冲锋",
+};
+
+function featureText(unit) {
+  return unit.classFeatures?.length ? unit.classFeatures.map(id => FEATURE_NAMES[id] || id).join("、") : "无";
+}
+
 export class UIManager {
   constructor() {
     this.turnBannerEl = document.getElementById("turnBanner");
@@ -38,7 +52,7 @@ export class UIManager {
     this.renderSkills(currentUnit, availableSkills, selectedSkillId, battleEnded, skillSystem, inputLocked);
     this.renderInitiativeList(initiativeOrder, currentUnit);
     this.renderUnitList(units, currentUnit);
-    this.renderButtons(currentUnit, battleEnded, availableSkills, inputLocked);
+    this.renderButtons(currentUnit, battleEnded, availableSkills, inputLocked, skillSystem);
   }
 
   renderTurnBanner(currentUnit, mode, selectedSkillId, availableSkills, battleEnded, inputLocked) {
@@ -85,6 +99,7 @@ export class UIManager {
       <strong>状态：</strong>${statusText}${this.renderStatusBadges(currentUnit)}
       <strong>剩余移动：</strong>${currentUnit.remainingMove}/${currentUnit.move}<br>
       <strong>普通攻击：</strong>+${currentUnit.effectiveAttackBonus}，${currentUnit.damageDice}，范围 ${currentUnit.attackRange}<br>
+      <strong>职业特性：</strong>${featureText(currentUnit)}<br>
       <strong>施法：</strong>${currentUnit.spellcastingAbility ? `${currentUnit.spellcastingAbility}｜法术攻击 +${currentUnit.getSpellAttackBonus()}｜法术 DC ${currentUnit.spellSaveDC}｜法术位 ${currentUnit.getSpellSlotText()}` : "无"}<br>
       <strong>先攻：</strong>${currentUnit.initiativeRoll} + ${currentUnit.initiativeBonus} = ${currentUnit.initiativeTotal}<br>
       <strong>模式：</strong>${modeText}<br>
@@ -180,18 +195,19 @@ ${skill.isSpell ? `法术：${skill.spellLevel === 0 ? "戏法" : `${skill.spell
         ${unit.avatar ? `<img class="unit-avatar" src="${unit.avatar}" alt="${unit.name}">` : ""}
         <div>
           <strong class="${unit.team}">${unit.name}</strong><br>
-          HP ${unit.hp}/${unit.maxHp} | ${unit.className || "无职业"} Lv.${unit.level || 1} | AC ${unit.effectiveAc} | 攻击 ${formatModifier(unit.effectiveAttackBonus)} | 先攻 ${formatModifier(unit.initiativeBonus || 0)}${unit.isDefending ? " | 防御中" : ""}<br>${unit.spellcastingAbility ? `<span class="ability-line">施法 ${unit.spellcastingAbility} | 法攻 ${formatModifier(unit.getSpellAttackBonus())} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}</span><br>` : ""}<span class="ability-line">${ABILITIES.map(a => `${a} ${unit.abilities?.[a] ?? 10}(${formatModifier(unit.getAbilityModifier ? unit.getAbilityModifier(a) : 0)})`).join(" ")}</span>
+          HP ${unit.hp}/${unit.maxHp} | ${unit.className || "无职业"} Lv.${unit.level || 1} | AC ${unit.effectiveAc} | 攻击 ${formatModifier(unit.effectiveAttackBonus)} | 先攻 ${formatModifier(unit.initiativeBonus || 0)}${unit.isDefending ? " | 防御中" : ""}<br><span class="ability-line">职业特性：${featureText(unit)}</span><br>${unit.spellcastingAbility ? `<span class="ability-line">施法 ${unit.spellcastingAbility} | 法攻 ${formatModifier(unit.getSpellAttackBonus())} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}</span><br>` : ""}<span class="ability-line">${ABILITIES.map(a => `${a} ${unit.abilities?.[a] ?? 10}(${formatModifier(unit.getAbilityModifier ? unit.getAbilityModifier(a) : 0)})`).join(" ")}</span>
           <div class="unit-hpbar"><div class="unit-hpbar-inner" style="width:${Math.max(0, Math.min(100, Math.round(unit.hp / unit.maxHp * 100)))}%"></div></div>
           ${this.renderStatusBadges(unit)}
         </div>
       </div>`).join("");
   }
 
-  renderButtons(currentUnit, battleEnded, availableSkills, inputLocked) {
+  renderButtons(currentUnit, battleEnded, availableSkills, inputLocked, skillSystem) {
     const isPlayerTurn = currentUnit && currentUnit.team === TEAM.PLAYER && !battleEnded && !inputLocked;
     this.moveBtn.disabled = !isPlayerTurn || currentUnit.remainingMove <= 0;
     this.attackBtn.disabled = !isPlayerTurn || currentUnit.hasAttacked;
-    this.skillBtn.disabled = !isPlayerTurn || currentUnit.hasAttacked || availableSkills.length === 0;
+    const hasUsableSkill = availableSkills.some(skill => !skillSystem.getUnavailableReason(currentUnit, skill));
+    this.skillBtn.disabled = !isPlayerTurn || availableSkills.length === 0 || !hasUsableSkill;
     this.defendBtn.disabled = !isPlayerTurn || currentUnit.hasAttacked || currentUnit.hasDefended;
     this.endTurnBtn.disabled = !isPlayerTurn;
   }

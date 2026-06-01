@@ -11,6 +11,7 @@ export let MAP_TILES = [];
 export let INITIAL_UNITS = [];
 export let SKILLS = [];
 export let SPELLS = [];
+export let CLASS_FEATURES = [];
 
 function getProjectRootUrl() {
   return new URL("../", import.meta.url);
@@ -25,11 +26,12 @@ function normalizeAssetPath(path) {
 
 export async function loadGameData() {
   const rootUrl = getProjectRootUrl();
-  const [map, units, skills, spells] = await Promise.all([
+  const [map, units, skills, spells, classFeatures] = await Promise.all([
     fetch(new URL("data/map.json", rootUrl)).then(res => res.json()),
     fetch(new URL("data/units.json", rootUrl)).then(res => res.json()),
     fetch(new URL("data/skills.json", rootUrl)).then(res => res.json()),
     fetch(new URL("data/spells.json", rootUrl)).then(res => res.json()),
+    fetch(new URL("data/classFeatures.json", rootUrl)).then(res => res.json()),
   ]);
 
   for (const unit of units) {
@@ -39,8 +41,9 @@ export async function loadGameData() {
   MAP_TILES = map.tiles;
   INITIAL_UNITS = units;
   SPELLS = spells;
+  CLASS_FEATURES = classFeatures;
   SKILLS = [...skills, ...spells];
-  return { map, units, skills: SKILLS, spells };
+  return { map, units, skills: SKILLS, spells, classFeatures };
 }
 
 export function preloadImages(urls) {

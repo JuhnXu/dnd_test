@@ -15,6 +15,8 @@ export class Unit {
     this.skillState = {};
     this.statusEffects = [];
     this.spellSlots = JSON.parse(JSON.stringify(config.spellSlots || {}));
+    this.classFeatures = config.classFeatures || [];
+    this.favoredEnemyTypes = config.favoredEnemyTypes || [];
   }
 
   get isAlive() { return this.hp > 0; }
@@ -56,6 +58,24 @@ export class Unit {
     return mod + prof;
   }
 
+  hasClassFeature(featureId) {
+    return this.classFeatures?.includes(featureId);
+  }
+
+  getDamageBonusAgainst(target) {
+    let bonus = 0;
+    if (this.hasClassFeature("favored_enemy_feature") && this.favoredEnemyTypes?.includes(target.classId)) bonus += 1;
+    return bonus;
+  }
+
+  getExtraDamageDiceAgainst(target) {
+    const dice = [];
+    for (const effect of target.statusEffects || []) {
+      if (effect.id === "hunters_marked" && effect.sourceId === this.id && effect.extraDamageDice) dice.push(effect.extraDamageDice);
+    }
+    return dice;
+  }
+
   setupSkillState(skills) {
     this.skillState = {};
     for (const skill of skills) {
@@ -77,13 +97,15 @@ export class Unit {
   takeDamage(amount) { this.hp = Math.max(0, this.hp - amount); }
   heal(amount) { this.hp = Math.min(this.maxHp, this.hp + amount); }
 
-  addStatusEffect(effect) {
-    const existing = this.statusEffects.find(item => item.id === effect.id);
+  addStatusEffect(effect, source = null) {
+    const finalEffect = { ...effect };
+    if (finalEffect.markedBy === "self" && source) finalEffect.sourceId = source.id;
+    const existing = this.statusEffects.find(item => item.id === finalEffect.id && (!finalEffect.sourceId || item.sourceId === finalEffect.sourceId));
     if (existing) {
-      existing.duration = Math.max(existing.duration, effect.duration);
+      existing.duration = Math.max(existing.duration, finalEffect.duration);
       return;
     }
-    this.statusEffects.push({ ...effect });
+    this.statusEffects.push(finalEffect);
   }
 
   tickStatusDurations() {

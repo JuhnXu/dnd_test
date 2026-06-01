@@ -57,6 +57,8 @@ export class SkillSystem {
     if (this.isAreaSkill(skill)) return this.useAoeSkill(user, target, skill, allUnits);
     if ((skill.type || "attack") === "heal") return this.useHeal(user, target, skill);
     if (skill.type === "buff") return this.useBuff(user, target, skill);
+    if (skill.type === "debuff") return this.useDebuff(user, target, skill);
+    if (skill.type === "extraAction") return this.useExtraAction(user, target, skill);
     return this.useAttackSkill(user, target, skill);
   }
 
@@ -70,9 +72,22 @@ export class SkillSystem {
   }
 
   useBuff(user, target, skill) {
-    if (skill.statusEffect) target.addStatusEffect(skill.statusEffect);
+    if (skill.statusEffect) target.addStatusEffect(skill.statusEffect, user);
     this.spendSkill(user, skill);
     return { success: true, kind: "buff", type: "skill", skill, attacker: user, target, statusEffect: skill.statusEffect };
+  }
+
+  useDebuff(user, target, skill) {
+    if (skill.statusEffect) target.addStatusEffect(skill.statusEffect, user);
+    this.spendSkill(user, skill);
+    return { success: true, kind: "debuff", type: "skill", skill, attacker: user, target, statusEffect: skill.statusEffect };
+  }
+
+  useExtraAction(user, target, skill) {
+    user.hasAttacked = false;
+    user.hasDefended = false;
+    this.spendSkill(user, skill);
+    return { success: true, kind: "extraAction", type: "skill", skill, attacker: user, target: user };
   }
 
   useAoeSkill(user, center, skill, allUnits) {
@@ -107,10 +122,24 @@ export class SkillSystem {
     if (hit) {
       const damage = Dice.rollDice(skill.damageDice || user.damageDice, critical ? 2 : 1);
       damage.total += (skill.addAbilityDamage === false ? 0 : user.damageAbilityModifier) + (skill.damageBonus || 0);
+      const featureNotes = [];
+      const favoredBonus = user.getDamageBonusAgainst?.(target) || 0;
+      if (favoredBonus) { damage.total += favoredBonus; featureNotes.push(`偏好敌人 +${favoredBonus}`); }
+      for (const dice of user.getExtraDamageDiceAgainst?.(target) || []) {
+        const extra = Dice.rollDice(dice, critical ? 2 : 1);
+        damage.total += extra.total;
+        featureNotes.push(`猎人印记 ${dice}=${extra.total}`);
+      }
+      if (critical && user.hasClassFeature?.("savage_attacks_feature")) {
+        const savage = Dice.rollDice(user.damageDice);
+        damage.total += savage.total;
+        featureNotes.push(`凶蛮重击 +${savage.total}`);
+      }
       target.takeDamage(damage.total);
       result.damage = damage;
+      result.featureNotes = featureNotes;
       result.killed = !target.isAlive;
-      if (skill.statusEffect && target.isAlive) { target.addStatusEffect(skill.statusEffect); result.statusEffect = skill.statusEffect; }
+      if (skill.statusEffect && target.isAlive) { target.addStatusEffect(skill.statusEffect, user); result.statusEffect = skill.statusEffect; }
       if (skill.push && target.isAlive) result.pushed = this.tryPush(user, target, skill.push);
     }
     this.spendSkill(user, skill);

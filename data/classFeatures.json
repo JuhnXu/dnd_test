@@ -1,0 +1,51 @@
+[
+  {
+    "id": "second_wind_feature",
+    "name": "回气",
+    "ownerClass": "Fighter",
+    "type": "active",
+    "description": "战士可用复苏之息恢复自身生命。"
+  },
+  {
+    "id": "action_surge_feature",
+    "name": "动作如潮",
+    "ownerClass": "Fighter",
+    "type": "active",
+    "description": "每场战斗一次，恢复本回合动作。"
+  },
+  {
+    "id": "favored_enemy_feature",
+    "name": "偏好敌人",
+    "ownerClass": "Ranger",
+    "type": "passive",
+    "description": "游侠对哥布林和兽人造成普通/技能攻击伤害时 +1。"
+  },
+  {
+    "id": "hunters_mark_feature",
+    "name": "猎人印记",
+    "ownerClass": "Ranger",
+    "type": "active",
+    "description": "标记敌人，游侠攻击被标记目标时额外 1d6 伤害。"
+  },
+  {
+    "id": "nimble_escape_feature",
+    "name": "灵巧撤离",
+    "ownerClass": "Goblin",
+    "type": "active",
+    "description": "哥布林可获得短暂 AC +2。"
+  },
+  {
+    "id": "savage_attacks_feature",
+    "name": "凶蛮重击",
+    "ownerClass": "Orc",
+    "type": "passive",
+    "description": "兽人重击时额外 +1d12 伤害。"
+  },
+  {
+    "id": "orc_aggression_feature",
+    "name": "凶蛮冲锋",
+    "ownerClass": "Orc",
+    "type": "active",
+    "description": "兽人获得攻击 +1。"
+  }
+]
