@@ -36,17 +36,30 @@ export class Renderer {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     for (let y = 0; y < GRID_SIZE; y++) {
       for (let x = 0; x < GRID_SIZE; x++) {
-        const blocked = MAP_TILES[y][x] === TERRAIN.BLOCKED;
-        ctx.fillStyle = blocked ? "#111827" : ((x + y) % 2 === 0 ? "#1e293b" : "#273449");
+        const terrain = MAP_TILES[y]?.[x] ?? TERRAIN.NORMAL;
+        const base = (x + y) % 2 === 0 ? "#1e293b" : "#273449";
+        ctx.fillStyle = base;
+        if (terrain === TERRAIN.BLOCKED) ctx.fillStyle = "#111827";
+        if (terrain === TERRAIN.DIFFICULT) ctx.fillStyle = "#3b2f63";
+        if (terrain === TERRAIN.DAMAGING) ctx.fillStyle = "#5f1f1f";
+        if (terrain === TERRAIN.HEALING) ctx.fillStyle = "#164e3f";
+        if (terrain === TERRAIN.GOAL) ctx.fillStyle = "#62500f";
         ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
         ctx.strokeStyle = "#475569";
         ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-        if (blocked) {
-          ctx.fillStyle = "#6b7280";
-          ctx.font = "bold 28px system-ui";
+
+        const icon = terrain === TERRAIN.BLOCKED ? "⬛"
+          : terrain === TERRAIN.DIFFICULT ? "≈"
+          : terrain === TERRAIN.DAMAGING ? "🔥"
+          : terrain === TERRAIN.HEALING ? "✚"
+          : terrain === TERRAIN.GOAL ? "★"
+          : "";
+        if (icon) {
+          ctx.fillStyle = terrain === TERRAIN.BLOCKED ? "#6b7280" : "rgba(255,255,255,.68)";
+          ctx.font = terrain === TERRAIN.DIFFICULT ? "bold 32px system-ui" : "bold 26px system-ui";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("⬛", x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
+          ctx.fillText(icon, x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
         }
       }
     }
@@ -210,6 +223,7 @@ export class Renderer {
     const ctx = this.ctx;
     const icons = [];
     if (unit.isDefending) icons.push({ text: "🛡", bg: "#166534" });
+    if (unit.isProne) icons.push({ text: "倒", bg: "#92400e" });
     for (const effect of unit.statusEffects) {
       const name = effect.name || "状态";
       const icon = name.includes("毒") ? "☠" : name.includes("守护") || effect.acBonus ? "◆" : effect.attackBonus ? "⚔" : "✦";

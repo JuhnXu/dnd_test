@@ -14,6 +14,7 @@ export class Unit {
     this.isDefending = false;
     this.isDodging = false;
     this.isDisengaging = false;
+    this.isProne = false;
     this.remainingMove = config.move;
     this.initiativeRoll = 0;
     this.initiativeTotal = 0;
@@ -25,6 +26,12 @@ export class Unit {
   }
 
   get isAlive() { return this.hp > 0; }
+  get conditionText() {
+    const conditions = [];
+    if (this.isProne) conditions.push("倒地");
+    if (this.isDefending) conditions.push("闪避");
+    return conditions.join("、") || "无";
+  }
   get acBonusFromStatus() { return this.statusEffects.reduce((sum, e) => sum + (e.acModifier || 0), 0); }
   get attackBonusFromStatus() { return this.statusEffects.reduce((sum, e) => sum + (e.attackBonusModifier || 0), 0); }
   get effectiveAc() { return this.ac + (this.isDefending ? DEFEND_AC_BONUS : 0) + this.acBonusFromStatus; }
@@ -105,7 +112,11 @@ export class Unit {
   }
 
   takeDamage(amount) { this.hp = Math.max(0, this.hp - amount); }
-  heal(amount) { this.hp = Math.min(this.maxHp, this.hp + amount); }
+  heal(amount) {
+    const wasDown = this.hp <= 0;
+    this.hp = Math.min(this.maxHp, this.hp + amount);
+    if (wasDown && this.hp > 0) this.isProne = true;
+  }
 
   addStatusEffect(effect, source = null) {
     const finalEffect = { ...effect };
@@ -170,5 +181,19 @@ export class Unit {
     this.isDisengaging = true;
     this.spendAction();
     return true;
+  }
+
+  standUp() {
+    if (!this.isProne) return false;
+    const cost = Math.max(1, Math.ceil(this.move / 2));
+    if (this.remainingMove < cost) return false;
+    this.remainingMove -= cost;
+    this.hasMoved = this.remainingMove <= 0;
+    this.isProne = false;
+    return cost;
+  }
+
+  knockProne() {
+    if (this.hp > 0) this.isProne = true;
   }
 }

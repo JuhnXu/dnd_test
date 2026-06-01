@@ -118,16 +118,42 @@ export class SkillSystem {
     return { success: true, kind: "aoe", type: "skill", skill, attacker: user, center, affected: results };
   }
 
+  getAttackRollMode(user, target) {
+    const advantages = [];
+    const disadvantages = [];
+    if (target?.isDodging) disadvantages.push("目标正在闪避");
+    if (target?.isProne) {
+      const adjacent = this.gridManager.getDistance(user, target) <= 1;
+      if (adjacent) advantages.push("攻击倒地目标且相邻");
+      else disadvantages.push("远程攻击倒地目标");
+    }
+    if (advantages.length && disadvantages.length) return { mode: "normal", reasons: ["优势和劣势互相抵消"] };
+    if (advantages.length) return { mode: "advantage", reasons: advantages };
+    if (disadvantages.length) return { mode: "disadvantage", reasons: disadvantages };
+    return { mode: "normal", reasons: [] };
+  }
+
+  rollD20ForAttack(user, target) {
+    const { mode, reasons } = this.getAttackRollMode(user, target);
+    if (mode === "advantage" || mode === "disadvantage") {
+      const rolls = [Dice.rollDie(20), Dice.rollDie(20)];
+      return { value: mode === "advantage" ? Math.max(...rolls) : Math.min(...rolls), rolls, mode, reasons };
+    }
+    const value = Dice.rollDie(20);
+    return { value, rolls: [value], mode, reasons };
+  }
+
   useAttackSkill(user, target, skill) {
-    const rollInfo = this.rollD20ForAttack(target);
+    const rollInfo = this.rollD20ForAttack(user, target);
     const d20 = rollInfo.value;
     const attackBonus = (skill.useSpellAttack ? user.getSpellAttackBonus() : user.effectiveAttackBonus) + (skill.attackBonusModifier || 0);
     const naturalOne = d20 === 1;
     const critical = d20 === 20;
     const attackTotal = d20 + attackBonus;
-    const targetAc = target.effectiveAc;
+    const coverBonus = this.gridManager.getCoverBonus?.(user, target) || 0;
+    const targetAc = target.effectiveAc + coverBonus;
     const hit = critical || (!naturalOne && attackTotal >= targetAc);
-    const result = { success: true, kind: "attack", type: "skill", skill, attacker: user, target, d20, rollInfo, naturalOne, critical, attackBonus, attackTotal, targetAc, hit, damage: null, killed: false, pushed: null, statusEffect: null };
+    const result = { success: true, kind: "attack", type: "skill", skill, attacker: user, target, d20, rollInfo, naturalOne, critical, attackBonus, attackTotal, targetAc, coverBonus, hit, damage: null, killed: false, pushed: null, statusEffect: null, knockedProne: false };
     if (hit) {
       const damage = Dice.rollDice(skill.damageDice || user.damageDice, critical ? 2 : 1);
       damage.total += (skill.addAbilityDamage === false ? 0 : user.damageAbilityModifier) + (skill.damageBonus || 0);
@@ -149,20 +175,12 @@ export class SkillSystem {
       result.featureNotes = featureNotes;
       result.killed = !target.isAlive;
       if (skill.statusEffect && target.isAlive) { target.addStatusEffect(skill.statusEffect, user); result.statusEffect = skill.statusEffect; }
-      if (skill.push && target.isAlive) result.pushed = this.tryPush(user, target, skill.push);
+      if (skill.push && target.isAlive) { result.pushed = this.tryPush(user, target, skill.push); if (result.pushed > 0) { target.knockProne?.(); result.knockedProne = true; } }
     }
     this.spendSkill(user, skill);
     return result;
   }
 
-  rollD20ForAttack(target) {
-    if (target?.isDodging) {
-      const rolls = [Dice.rollDie(20), Dice.rollDie(20)];
-      return { value: Math.min(...rolls), rolls, mode: "disadvantage", reason: "目标正在闪避" };
-    }
-    const value = Dice.rollDie(20);
-    return { value, rolls: [value], mode: "normal" };
-  }
 
   tryPush(user, target, distance) {
     const dx = Math.sign(target.x - user.x);

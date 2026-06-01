@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DND 战棋战斗 Demo v13</title>
+  <title>DND 战棋战斗 Demo v15</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
@@ -14,18 +14,18 @@
       <div id="tooltip" class="tooltip hidden"></div>
     </div>
     <aside class="panel">
-      <h1>DND 2D 战棋 Demo v13</h1>
-      <div class="hint">v13 新增：完整行动经济、附赠动作、反应、疾走、脱离、闪避和机会攻击。</div>
+      <h1>DND 2D 战棋 Demo v15</h1>
+      <div class="hint">v15 新增：多关卡、地形类型、胜利条件和关卡切换。</div>
+      <div class="level-info" id="levelInfo"></div>
       <div class="status" id="status"></div>
       <div class="actions">
         <button id="moveBtn">移动模式</button>
         <button id="attackBtn">攻击模式</button>
         <button id="skillBtn">技能模式</button>
-        <button id="defendBtn">闪避/防御</button>
-        <button id="dashBtn">疾走</button>
-        <button id="disengageBtn">脱离</button>
+        <button id="defendBtn">防御动作</button>
         <button id="endTurnBtn">结束回合</button>
         <button id="restartBtn">重新开始</button>
+        <button id="nextLevelBtn">下一关</button>
       </div>
       <h2>行动确认</h2><div class="confirm-panel" id="confirmPanel"></div>
       <h2>技能</h2><div class="skill-list" id="skillList"></div>

@@ -116,3 +116,16 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .ability-line { color:#cbd5e1; font-size:12px; line-height:1.5; }
 
 .log .reaction, .reaction { color: #f0abfc; font-weight: 700; }
+.status-warning { border-color: #f59e0b; color: #fcd34d; }
+
+/* v15 level system */
+.level-info {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #172033;
+  border: 1px solid #334155;
+  color: #dbeafe;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 10px 0;
+}

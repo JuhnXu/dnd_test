@@ -18,6 +18,7 @@ function featureText(unit) {
 export class UIManager {
   constructor() {
     this.turnBannerEl = document.getElementById("turnBanner");
+    this.levelInfoEl = document.getElementById("levelInfo");
     this.statusEl = document.getElementById("status");
     this.skillListEl = document.getElementById("skillList");
     this.unitListEl = document.getElementById("unitList");
@@ -33,9 +34,10 @@ export class UIManager {
     this.disengageBtn = document.getElementById("disengageBtn");
     this.endTurnBtn = document.getElementById("endTurnBtn");
     this.restartBtn = document.getElementById("restartBtn");
+    this.nextLevelBtn = document.getElementById("nextLevelBtn");
   }
 
-  bindEvents({ onMoveMode, onAttackMode, onSkillMode, onSkillSelect, onDefend, onDash, onDisengage, onEndTurn, onRestart, onConfirmAction, onCancelAction }) {
+  bindEvents({ onMoveMode, onAttackMode, onSkillMode, onSkillSelect, onDefend, onDash, onDisengage, onEndTurn, onRestart, onNextLevel, onConfirmAction, onCancelAction }) {
     this.onSkillSelect = onSkillSelect;
     this.onConfirmAction = onConfirmAction;
     this.onCancelAction = onCancelAction;
@@ -47,9 +49,11 @@ export class UIManager {
     this.disengageBtn?.addEventListener("click", onDisengage);
     this.endTurnBtn.addEventListener("click", onEndTurn);
     this.restartBtn.addEventListener("click", onRestart);
+    this.nextLevelBtn?.addEventListener("click", onNextLevel);
   }
 
-  render({ units, initiativeOrder, currentUnit, mode, battleEnded, availableSkills, selectedSkillId, skillSystem, inputLocked, pendingAction }) {
+  render({ units, initiativeOrder, currentUnit, mode, battleEnded, availableSkills, selectedSkillId, skillSystem, inputLocked, pendingAction, level, levelIndex, levelCount }) {
+    this.renderLevelInfo(level, levelIndex, levelCount);
     this.renderTurnBanner(currentUnit, mode, selectedSkillId, availableSkills, battleEnded, inputLocked);
     this.renderStatus(currentUnit, mode, selectedSkillId, availableSkills);
     this.renderConfirmPanel(pendingAction);
@@ -57,6 +61,14 @@ export class UIManager {
     this.renderInitiativeList(initiativeOrder, currentUnit);
     this.renderUnitList(units, currentUnit);
     this.renderButtons(currentUnit, battleEnded, availableSkills, inputLocked, skillSystem);
+  }
+
+  renderLevelInfo(level, levelIndex = 0, levelCount = 1) {
+    if (!this.levelInfoEl || !level) return;
+    const victory = level.victoryCondition?.type === "eliminateAll" ? "消灭全部敌人"
+      : level.victoryCondition?.type === "reachGoalOrEliminate" ? "抵达目标区域或消灭全部敌人"
+      : "自定义胜利条件";
+    this.levelInfoEl.innerHTML = `<strong>${level.name}</strong>（${levelIndex + 1}/${levelCount}）<br>${level.description || ""}<br><strong>胜利条件：</strong>${victory}`;
   }
 
   renderTurnBanner(currentUnit, mode, selectedSkillId, availableSkills, battleEnded, inputLocked) {
@@ -80,6 +92,7 @@ export class UIManager {
   renderStatusBadges(unit) {
     const badges = [];
     if (unit.isDefending) badges.push(`<span class="status-badge status-defense">🛡 闪避</span>`);
+    if (unit.isProne) badges.push(`<span class="status-badge status-warning">倒地</span>`);
     if (unit.isDisengaging) badges.push(`<span class="status-badge status-buff">↩ 脱离</span>`);
     for (const effect of unit.statusEffects) {
       const cls = (effect.name || "").includes("毒") ? "status-poison" : effect.acBonus || effect.attackBonus ? "status-buff" : "";
@@ -94,8 +107,9 @@ export class UIManager {
     const selectedSkill = availableSkills.find(skill => skill.id === selectedSkillId);
     const modeText = mode === ACTION_MODE.MOVE ? "移动" : mode === ACTION_MODE.ATTACK ? "攻击" : `技能${selectedSkill ? `：${selectedSkill.name}` : ""}`;
     const defendText = currentUnit.isDefending ? "（防御中，AC +2）" : "";
-    const statusText = currentUnit.statusEffects.length
-      ? currentUnit.statusEffects.map(effect => `${effect.name}(${effect.duration})`).join("、")
+    const conditionPrefix = currentUnit.isProne ? ["倒地"] : [];
+    const statusText = currentUnit.statusEffects.length || conditionPrefix.length
+      ? [...conditionPrefix, ...currentUnit.statusEffects.map(effect => `${effect.name}(${effect.duration})`)].join("、")
       : "无";
     this.statusEl.innerHTML = `
       <strong>当前回合：</strong><span class="${currentUnit.team}">${currentUnit.name}</span><br>
@@ -202,7 +216,7 @@ ${skill.isSpell ? `法术：${skill.spellLevel === 0 ? "戏法" : `${skill.spell
         ${unit.avatar ? `<img class="unit-avatar" src="${unit.avatar}" alt="${unit.name}">` : ""}
         <div>
           <strong class="${unit.team}">${unit.name}</strong><br>
-          HP ${unit.hp}/${unit.maxHp} | ${unit.className || "无职业"} Lv.${unit.level || 1} | AC ${unit.effectiveAc} | 攻击 ${formatModifier(unit.effectiveAttackBonus)} | 先攻 ${formatModifier(unit.initiativeBonus || 0)}${unit.isDefending ? " | 防御中" : ""}<br><span class="ability-line">职业特性：${featureText(unit)}</span><br>${unit.spellcastingAbility ? `<span class="ability-line">施法 ${unit.spellcastingAbility} | 法攻 ${formatModifier(unit.getSpellAttackBonus())} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}</span><br>` : ""}<span class="ability-line">${ABILITIES.map(a => `${a} ${unit.abilities?.[a] ?? 10}(${formatModifier(unit.getAbilityModifier ? unit.getAbilityModifier(a) : 0)})`).join(" ")}</span>
+          HP ${unit.hp}/${unit.maxHp} | ${unit.className || "无职业"} Lv.${unit.level || 1} | AC ${unit.effectiveAc} | 攻击 ${formatModifier(unit.effectiveAttackBonus)} | 先攻 ${formatModifier(unit.initiativeBonus || 0)}${unit.isDefending ? " | 防御中" : ""}${unit.isProne ? " | 倒地" : ""}<br><span class="ability-line">职业特性：${featureText(unit)}</span><br>${unit.spellcastingAbility ? `<span class="ability-line">施法 ${unit.spellcastingAbility} | 法攻 ${formatModifier(unit.getSpellAttackBonus())} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}</span><br>` : ""}<span class="ability-line">${ABILITIES.map(a => `${a} ${unit.abilities?.[a] ?? 10}(${formatModifier(unit.getAbilityModifier ? unit.getAbilityModifier(a) : 0)})`).join(" ")}</span>
           <div class="unit-hpbar"><div class="unit-hpbar-inner" style="width:${Math.max(0, Math.min(100, Math.round(unit.hp / unit.maxHp * 100)))}%"></div></div>
           ${this.renderStatusBadges(unit)}
         </div>
@@ -218,6 +232,7 @@ ${skill.isSpell ? `法术：${skill.spellLevel === 0 ? "戏法" : `${skill.spell
     this.defendBtn.disabled = !isPlayerTurn || !currentUnit.actionAvailable || currentUnit.hasDefended;
     if (this.dashBtn) this.dashBtn.disabled = !isPlayerTurn || !currentUnit.actionAvailable;
     if (this.disengageBtn) this.disengageBtn.disabled = !isPlayerTurn || !currentUnit.actionAvailable;
+    if (this.nextLevelBtn) this.nextLevelBtn.disabled = !battleEnded;
     this.endTurnBtn.disabled = !isPlayerTurn;
   }
 

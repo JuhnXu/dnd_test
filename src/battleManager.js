@@ -1,4 +1,4 @@
-import { ACTION_MODE, ANIMATION_STEP_MS, INITIAL_UNITS, SKILLS, TEAM, TILE_SIZE } from "./config.js";
+import { ACTION_MODE, ANIMATION_STEP_MS, INITIAL_UNITS, SKILLS, TEAM, TILE_SIZE, CURRENT_LEVEL_INDEX, getCurrentLevel, getLevelCount, setActiveLevel } from "./config.js";
 import { Unit } from "./unit.js";
 import { GridManager } from "./gridManager.js";
 import { CombatSystem } from "./combatSystem.js";
@@ -54,6 +54,7 @@ export class BattleManager {
       onRestart: () => this.resetGame(),
       onConfirmAction: () => this.confirmPendingAction(),
       onCancelAction: () => this.cancelPendingAction(),
+      onNextLevel: () => this.nextLevel(),
     });
   }
 
@@ -66,7 +67,12 @@ export class BattleManager {
   }
 
   resetGame() {
-    this.units = INITIAL_UNITS.map(config => new Unit(config));
+    const level = getCurrentLevel();
+    const allowedIds = level?.unitIds || INITIAL_UNITS.map(unit => unit.id);
+    const spawns = level?.spawns || {};
+    this.units = INITIAL_UNITS
+      .filter(config => allowedIds.includes(config.id))
+      .map(config => new Unit({ ...config, ...(spawns[config.id] || {}) }));
     for (const unit of this.units) unit.setupSkillState(this.skillSystem.getUnitSkills(unit));
     this.gridManager.setUnits(this.units);
     this.skillSystem.setSkills(SKILLS);
@@ -79,7 +85,7 @@ export class BattleManager {
     this.hoverTile = null;
     this.pendingAction = null;
     this.uiManager.clearLog();
-    this.uiManager.log("v13 战斗开始：完整行动经济已启用，动作、附赠动作、反应、疾走、脱离、闪避和机会攻击可用。", "system");
+    this.uiManager.log(`v15 关卡开始：${level?.name || "未命名关卡"}。${level?.description || ""}`, "system");
     for (const unit of this.turnManager.initiativeOrder) {
       this.uiManager.log(`${unit.name} 先攻：d20(${unit.initiativeRoll}) + 敏捷修正${unit.initiativeBonus >= 0 ? "+" + unit.initiativeBonus : unit.initiativeBonus} = ${unit.initiativeTotal}`, unit.team);
     }
@@ -118,11 +124,10 @@ export class BattleManager {
   showTileTooltip(tile) {
     if (!this.gridManager.isInsideGrid(tile.x, tile.y)) { this.uiManager.hideTooltip(); return; }
     const unit = this.gridManager.getUnitAt(tile.x, tile.y);
-    const blocked = this.gridManager.isBlocked(tile.x, tile.y);
     const current = this.currentUnit;
-    let html = `<strong>格子 (${tile.x}, ${tile.y})</strong><br>${blocked ? "地形：障碍物" : "地形：普通"}`;
+    let html = `<strong>格子 (${tile.x}, ${tile.y})</strong><br>地形：${this.gridManager.getTerrainName(tile.x, tile.y)}`;
     if (unit) {
-      html += `<br><strong class="${unit.team}">${unit.name}</strong><br>HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc}<br>攻击 +${unit.effectiveAttackBonus} | DEX豁免 ${unit.getSaveBonus ? (unit.getSaveBonus("DEX") >= 0 ? "+" + unit.getSaveBonus("DEX") : unit.getSaveBonus("DEX")) : "+" + (unit.saveBonus || 0)}<br>职业：${unit.className || "无"} Lv.${unit.level || 1} | 属性 STR ${unit.abilities?.STR ?? "-"} DEX ${unit.abilities?.DEX ?? "-"} CON ${unit.abilities?.CON ?? "-"}<br>${unit.spellcastingAbility ? `施法：${unit.spellcastingAbility} | 法攻 +${unit.getSpellAttackBonus()} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}` : "施法：无"}<br>状态：${unit.statusEffects.length ? unit.statusEffects.map(e => `${e.name}(${e.duration})`).join("、") : "无"}`;
+      html += `<br><strong class="${unit.team}">${unit.name}</strong><br>HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc}<br>攻击 +${unit.effectiveAttackBonus} | DEX豁免 ${unit.getSaveBonus ? (unit.getSaveBonus("DEX") >= 0 ? "+" + unit.getSaveBonus("DEX") : unit.getSaveBonus("DEX")) : "+" + (unit.saveBonus || 0)}<br>职业：${unit.className || "无"} Lv.${unit.level || 1} | 属性 STR ${unit.abilities?.STR ?? "-"} DEX ${unit.abilities?.DEX ?? "-"} CON ${unit.abilities?.CON ?? "-"}<br>${unit.spellcastingAbility ? `施法：${unit.spellcastingAbility} | 法攻 +${unit.getSpellAttackBonus()} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}` : "施法：无"}<br>状态：${[unit.isProne ? "倒地" : null, ...unit.statusEffects.map(e => `${e.name}(${e.duration})`)].filter(Boolean).join("、") || "无"}`;
     }
     if (current?.team === TEAM.PLAYER && this.mode === ACTION_MODE.MOVE) {
       const plan = this.gridManager.findPath(current, tile.x, tile.y);
@@ -235,7 +240,11 @@ export class BattleManager {
     }
     if (unit.isAlive) this.gridManager.consumeMove(unit, action.cost);
     this.previewPath = null;
-    if (unit.isAlive) this.uiManager.log(`${unit.name} 沿路径移动到 (${unit.x}, ${unit.y})，消耗 ${action.cost} 格移动`, unit.team);
+    if (unit.isAlive) {
+      this.uiManager.log(`${unit.name} 沿路径移动到 (${unit.x}, ${unit.y})，消耗 ${action.cost} 格移动`, unit.team);
+      this.applyTerrainEffect(unit, "进入");
+      this.checkBattleEnd();
+    }
     else this.uiManager.log(`${unit.name} 在移动中被击倒，移动中止。`, "system");
     this.inputLocked = false;
     this.render();
@@ -331,10 +340,16 @@ export class BattleManager {
 
   handleAttackResult(result) {
     if (!result.success) { this.uiManager.log(result.reason, "system"); return; }
-    const { attacker, target, d20, rollInfo, attackBonus, attackTotal, targetAc, hit, damage, killed, critical, naturalOne, skill, pushed, statusEffect, featureNotes, specialKind } = result;
+    const { attacker, target, d20, rollInfo, attackBonus, attackTotal, targetAc, coverBonus, hit, damage, killed, critical, naturalOne, skill, pushed, knockedProne, statusEffect, featureNotes, specialKind } = result;
     const actionName = specialKind === "opportunity" ? "进行机会攻击" : skill ? `使用 ${skill.name} 攻击` : "攻击";
-    const rollText = rollInfo?.mode === "disadvantage" ? `d20劣势(${rollInfo.rolls.join(", ")}取${d20})` : `d20(${d20})`;
-    this.uiManager.log(`${attacker.name} ${actionName} ${target.name}：${rollText} + ${attackBonus} = ${attackTotal} vs AC ${targetAc}`, attacker.team);
+    const rollText = rollInfo?.mode === "advantage"
+      ? `d20优势(${rollInfo.rolls.join(", ")}取${d20})`
+      : rollInfo?.mode === "disadvantage"
+        ? `d20劣势(${rollInfo.rolls.join(", ")}取${d20})`
+        : `d20(${d20})`;
+    const reasonText = rollInfo?.reasons?.length ? `（${rollInfo.reasons.join("；")}）` : "";
+    const coverText = coverBonus ? `，半掩护 +${coverBonus} AC` : "";
+    this.uiManager.log(`${attacker.name} ${actionName} ${target.name}：${rollText}${reasonText} + ${attackBonus} = ${attackTotal} vs AC ${targetAc}${coverText}`, attacker.team);
     if (naturalOne) { this.uiManager.log("自然 1：大失败，必定未命中。", "crit"); if (skill) this.logSkillCost(attacker, skill); return; }
     if (critical) this.uiManager.log("自然 20：重击！必定命中，伤害骰翻倍。", "crit");
     if (hit) {
@@ -342,7 +357,7 @@ export class BattleManager {
       const featureText = featureNotes?.length ? `，职业特性：${featureNotes.join("、")}` : "";
       this.uiManager.log(`命中！造成 ${damage.total} 点伤害${extra}${featureText}，${target.name} 剩余 HP ${target.hp}/${target.maxHp}`, "hit");
       if (statusEffect) this.uiManager.log(`${target.name} 获得状态：${statusEffect.name}（持续 ${statusEffect.duration} 回合）。`, "system");
-      if (pushed) this.uiManager.log(`${target.name} 被推开 ${pushed} 格。`, "system");
+      if (pushed) this.uiManager.log(`${target.name} 被推开 ${pushed} 格${knockedProne ? "，并倒地" : ""}。`, "system");
       if (skill) this.logSkillCost(attacker, skill);
       if (killed) this.uiManager.log(`${target.name} 被击倒！`, "system");
     } else {
@@ -376,6 +391,11 @@ export class BattleManager {
   }
 
   processTurnStartStatus(unit) {
+    this.applyTerrainEffect(unit, "回合开始");
+    if (unit.isProne && unit.hp > 0) {
+      const cost = unit.standUp?.();
+      if (cost) this.uiManager.log(`${unit.name} 从倒地状态起身，消耗 ${cost} 格移动力。`, "system");
+    }
     const logs = this.statusEffectSystem.processTurnStart(unit);
     for (const log of logs) {
       if (log.type === "damage") this.uiManager.log(`${unit.name} 受到 ${log.effect.name} 影响，受到 ${log.amount} 点伤害。`, "damage");
@@ -422,10 +442,43 @@ export class BattleManager {
     if (!this.battleEnded) setTimeout(() => this.nextTurn(), 650);
   }
 
+  applyTerrainEffect(unit, timing = "进入") {
+    if (!unit?.isAlive) return;
+    if (this.gridManager.isDamaging(unit.x, unit.y)) {
+      const damage = Math.floor(Math.random() * 4) + 1;
+      unit.takeDamage(damage);
+      this.uiManager.log(`${unit.name} ${timing}伤害地形，受到 ${damage} 点火焰伤害。`, "damage");
+      if (!unit.isAlive) this.uiManager.log(`${unit.name} 被地形伤害击倒！`, "system");
+    }
+    if (unit.isAlive && this.gridManager.isHealing(unit.x, unit.y) && unit.hp < unit.maxHp) {
+      const heal = Math.floor(Math.random() * 4) + 1;
+      const before = unit.hp;
+      unit.hp = Math.min(unit.maxHp, unit.hp + heal);
+      this.uiManager.log(`${unit.name} ${timing}治疗地形，恢复 ${unit.hp - before} 点 HP。`, "heal");
+    }
+  }
+
+  nextLevel() {
+    if (CURRENT_LEVEL_INDEX >= getLevelCount() - 1) {
+      this.uiManager.log("已经是最后一关。", "system");
+      return;
+    }
+    setActiveLevel(CURRENT_LEVEL_INDEX + 1);
+    this.resetGame();
+  }
+
   checkBattleEnd() {
+    const level = getCurrentLevel();
     const playersAlive = this.units.some(unit => unit.team === TEAM.PLAYER && unit.isAlive);
     const enemiesAlive = this.units.some(unit => unit.team === TEAM.ENEMY && unit.isAlive);
-    if (!playersAlive || !enemiesAlive) { this.battleEnded = true; this.uiManager.log(playersAlive ? "玩家胜利！" : "敌人胜利！", "system"); }
+    if (!playersAlive) { this.battleEnded = true; this.uiManager.log("敌人胜利！", "system"); return; }
+    const eliminateWin = !enemiesAlive;
+    const goalWin = level?.victoryCondition?.type?.includes("reachGoal") && this.units.some(unit => unit.team === TEAM.PLAYER && unit.isAlive && this.gridManager.isGoal(unit.x, unit.y));
+    if (eliminateWin || goalWin) {
+      this.battleEnded = true;
+      const reason = goalWin ? "玩家抵达目标区域！" : "敌人全灭！";
+      this.uiManager.log(`${reason} 玩家胜利！`, "system");
+    }
   }
 
   render() {
@@ -441,6 +494,9 @@ export class BattleManager {
       skillSystem: this.skillSystem,
       inputLocked: this.inputLocked,
       pendingAction: this.pendingAction,
+      level: getCurrentLevel(),
+      levelIndex: CURRENT_LEVEL_INDEX,
+      levelCount: getLevelCount(),
     });
   }
 }
