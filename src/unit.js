@@ -1,4 +1,5 @@
 import { DEFEND_AC_BONUS } from "./config.js";
+import { getAbilityModifier } from "./ability.js";
 
 export class Unit {
   constructor(config) {
@@ -19,7 +20,21 @@ export class Unit {
   get acBonusFromStatus() { return this.statusEffects.reduce((sum, e) => sum + (e.acModifier || 0), 0); }
   get attackBonusFromStatus() { return this.statusEffects.reduce((sum, e) => sum + (e.attackBonusModifier || 0), 0); }
   get effectiveAc() { return this.ac + (this.isDefending ? DEFEND_AC_BONUS : 0) + this.acBonusFromStatus; }
-  get effectiveAttackBonus() { return this.attackBonus + this.attackBonusFromStatus; }
+
+  getAbilityScore(ability) { return this.abilities?.[ability] ?? 10; }
+  getAbilityModifier(ability) { return getAbilityModifier(this.getAbilityScore(ability)); }
+  get proficiency() { return this.proficiencyBonus ?? 2; }
+  get attackAbilityModifier() { return this.getAbilityModifier(this.attackAbility || "STR"); }
+  get damageAbilityModifier() { return this.getAbilityModifier(this.damageAbility || this.attackAbility || "STR"); }
+  get effectiveAttackBonus() { return this.proficiency + this.attackAbilityModifier + this.attackBonusFromStatus; }
+  get initiativeBonusCalculated() { return this.getAbilityModifier("DEX"); }
+  get spellSaveDC() { return 8 + this.proficiency + this.getAbilityModifier(this.skillAbility || "WIS"); }
+  getSpellAttackBonus() { return this.proficiency + this.getAbilityModifier(this.skillAbility || this.attackAbility || "STR") + this.attackBonusFromStatus; }
+  getSaveBonus(ability) {
+    const mod = this.getAbilityModifier(ability || "DEX");
+    const prof = this.saveProficiencies?.includes(ability) ? this.proficiency : 0;
+    return mod + prof;
+  }
 
   setupSkillState(skills) {
     this.skillState = {};

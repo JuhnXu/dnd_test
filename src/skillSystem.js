@@ -78,13 +78,14 @@ export class SkillSystem {
     const results = [];
     for (const target of affected) {
       const saveRoll = Dice.rollDie(20);
-      const saveBonus = target.saveBonus || 0;
+      const saveBonus = target.getSaveBonus ? target.getSaveBonus(skill.saveType || "DEX") : (target.saveBonus || 0);
       const saveTotal = saveRoll + saveBonus;
-      const saved = saveTotal >= (skill.saveDC || 10);
+      const dc = skill.saveDC || user.spellSaveDC || 10;
+      const saved = saveTotal >= dc;
       const damage = Dice.rollDice(skill.damageDice || "1d6");
       const finalDamage = saved && skill.halfOnSave ? Math.floor(damage.total / 2) : damage.total;
       target.takeDamage(finalDamage);
-      results.push({ target, saveRoll, saveBonus, saveTotal, saved, damage: finalDamage, killed: !target.isAlive });
+      results.push({ target, saveRoll, saveBonus, saveTotal, saveDC: dc, saved, damage: finalDamage, killed: !target.isAlive });
     }
     this.spendSkill(user, skill);
     return { success: true, kind: "aoe", type: "skill", skill, attacker: user, center, affected: results };
@@ -92,7 +93,7 @@ export class SkillSystem {
 
   useAttackSkill(user, target, skill) {
     const d20 = Dice.rollDie(20);
-    const attackBonus = user.effectiveAttackBonus + (skill.attackBonusModifier || 0);
+    const attackBonus = (skill.useSpellAttack ? user.getSpellAttackBonus() : user.effectiveAttackBonus) + (skill.attackBonusModifier || 0);
     const naturalOne = d20 === 1;
     const critical = d20 === 20;
     const attackTotal = d20 + attackBonus;
@@ -101,7 +102,7 @@ export class SkillSystem {
     const result = { success: true, kind: "attack", type: "skill", skill, attacker: user, target, d20, naturalOne, critical, attackBonus, attackTotal, targetAc, hit, damage: null, killed: false, pushed: null, statusEffect: null };
     if (hit) {
       const damage = Dice.rollDice(skill.damageDice || user.damageDice, critical ? 2 : 1);
-      damage.total += skill.damageBonus || 0;
+      damage.total += (skill.addAbilityDamage === false ? 0 : user.damageAbilityModifier) + (skill.damageBonus || 0);
       target.takeDamage(damage.total);
       result.damage = damage;
       result.killed = !target.isAlive;

@@ -17,6 +17,7 @@ export class TurnManager {
   rollInitiative() {
     for (const unit of this.units) {
       unit.initiativeRoll = Dice.rollDie(20);
+      unit.initiativeBonus = unit.initiativeBonusCalculated ?? unit.initiativeBonus ?? 0;
       unit.initiativeTotal = unit.initiativeRoll + unit.initiativeBonus;
     }
     this.initiativeOrder = [...this.units].sort((a, b) => {

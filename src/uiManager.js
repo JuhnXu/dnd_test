@@ -1,4 +1,5 @@
 import { ACTION_MODE, TEAM } from "./config.js";
+import { ABILITIES, ABILITY_NAMES, formatModifier } from "./ability.js";
 
 export class UIManager {
   constructor() {
@@ -85,7 +86,8 @@ export class UIManager {
       <strong>剩余移动：</strong>${currentUnit.remainingMove}/${currentUnit.move}<br>
       <strong>普通攻击：</strong>+${currentUnit.effectiveAttackBonus}，${currentUnit.damageDice}，范围 ${currentUnit.attackRange}<br>
       <strong>先攻：</strong>${currentUnit.initiativeRoll} + ${currentUnit.initiativeBonus} = ${currentUnit.initiativeTotal}<br>
-      <strong>模式：</strong>${modeText}
+      <strong>模式：</strong>${modeText}<br>
+      <strong>属性：</strong>${ABILITIES.map(a => `${a} ${currentUnit.abilities?.[a] ?? 10}(${formatModifier(currentUnit.getAbilityModifier ? currentUnit.getAbilityModifier(a) : 0)})`).join(" ")}
     `;
   }
 
@@ -174,7 +176,7 @@ ${detail}
         ${unit.avatar ? `<img class="unit-avatar" src="${unit.avatar}" alt="${unit.name}">` : ""}
         <div>
           <strong class="${unit.team}">${unit.name}</strong><br>
-          HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc} | 移动 ${unit.move} | 攻击 +${unit.effectiveAttackBonus} | 伤害 ${unit.damageDice}${unit.isDefending ? " | 防御中" : ""}
+          HP ${unit.hp}/${unit.maxHp} | ${unit.className || "无职业"} Lv.${unit.level || 1} | AC ${unit.effectiveAc} | 攻击 ${formatModifier(unit.effectiveAttackBonus)} | 先攻 ${formatModifier(unit.initiativeBonus || 0)}${unit.isDefending ? " | 防御中" : ""}<br><span class="ability-line">${ABILITIES.map(a => `${a} ${unit.abilities?.[a] ?? 10}(${formatModifier(unit.getAbilityModifier ? unit.getAbilityModifier(a) : 0)})`).join(" ")}</span>
           <div class="unit-hpbar"><div class="unit-hpbar-inner" style="width:${Math.max(0, Math.min(100, Math.round(unit.hp / unit.maxHp * 100)))}%"></div></div>
           ${this.renderStatusBadges(unit)}
         </div>

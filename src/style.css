@@ -112,3 +112,5 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .log .turn, .turn { color: #facc15; font-weight: 700; }
 .unit-card-with-avatar .unit-hpbar { margin-top: 5px; height: 6px; border-radius: 999px; background: #030712; overflow: hidden; border: 1px solid #334155; }
 .unit-card-with-avatar .unit-hpbar-inner { height: 100%; background: linear-gradient(90deg, #ef4444, #22c55e); }
+
+.ability-line { color:#cbd5e1; font-size:12px; line-height:1.5; }

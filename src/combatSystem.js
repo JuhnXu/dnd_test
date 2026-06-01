@@ -23,6 +23,7 @@ export class CombatSystem {
     const result = { success: true, kind: "attack", type: "attack", attacker, target, d20, naturalOne, critical, attackBonus, attackTotal, targetAc, hit, damage: null, killed: false };
     if (hit) {
       const damage = Dice.rollDice(attacker.damageDice, critical ? 2 : 1);
+      damage.total += attacker.damageAbilityModifier;
       target.takeDamage(damage.total);
       result.damage = damage;
       result.killed = !target.isAlive;

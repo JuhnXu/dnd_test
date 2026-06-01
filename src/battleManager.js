@@ -77,9 +77,9 @@ export class BattleManager {
     this.hoverTile = null;
     this.pendingAction = null;
     this.uiManager.clearLog();
-    this.uiManager.log("v8 战斗开始：血条、状态图标、目标高亮、技能说明、日志颜色和回合流程提示已启用。", "system");
+    this.uiManager.log("v9 战斗开始：职业与六项属性系统已启用，攻击、先攻、豁免会按属性修正计算。", "system");
     for (const unit of this.turnManager.initiativeOrder) {
-      this.uiManager.log(`${unit.name} 先攻：d20(${unit.initiativeRoll}) + ${unit.initiativeBonus} = ${unit.initiativeTotal}`, unit.team);
+      this.uiManager.log(`${unit.name} 先攻：d20(${unit.initiativeRoll}) + 敏捷修正${unit.initiativeBonus >= 0 ? "+" + unit.initiativeBonus : unit.initiativeBonus} = ${unit.initiativeTotal}`, unit.team);
     }
     this.uiManager.log(`轮到 ${this.currentUnit.name}`, "turn");
     this.render();
@@ -120,7 +120,7 @@ export class BattleManager {
     const current = this.currentUnit;
     let html = `<strong>格子 (${tile.x}, ${tile.y})</strong><br>${blocked ? "地形：障碍物" : "地形：普通"}`;
     if (unit) {
-      html += `<br><strong class="${unit.team}">${unit.name}</strong><br>HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc}<br>攻击 +${unit.effectiveAttackBonus} | 豁免 +${unit.saveBonus || 0}<br>状态：${unit.statusEffects.length ? unit.statusEffects.map(e => `${e.name}(${e.duration})`).join("、") : "无"}`;
+      html += `<br><strong class="${unit.team}">${unit.name}</strong><br>HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc}<br>攻击 +${unit.effectiveAttackBonus} | DEX豁免 ${unit.getSaveBonus ? (unit.getSaveBonus("DEX") >= 0 ? "+" + unit.getSaveBonus("DEX") : unit.getSaveBonus("DEX")) : "+" + (unit.saveBonus || 0)}<br>职业：${unit.className || "无"} Lv.${unit.level || 1} | 属性 STR ${unit.abilities?.STR ?? "-"} DEX ${unit.abilities?.DEX ?? "-"} CON ${unit.abilities?.CON ?? "-"}<br>状态：${unit.statusEffects.length ? unit.statusEffects.map(e => `${e.name}(${e.duration})`).join("、") : "无"}`;
     }
     if (current?.team === TEAM.PLAYER && this.mode === ACTION_MODE.MOVE) {
       const plan = this.gridManager.findPath(current, tile.x, tile.y);
@@ -261,7 +261,7 @@ export class BattleManager {
     this.uiManager.log(`${attacker.name} 使用 ${skill.name}，区域中心 (${center.x}, ${center.y})，影响 ${affected.length} 个敌人。`, attacker.team);
     if (affected.length === 0) this.uiManager.log("区域内没有敌人。", "system");
     for (const item of affected) {
-      this.uiManager.log(`${item.target.name} 进行 ${skill.saveType || "DEX"} 豁免：d20(${item.saveRoll}) + ${item.saveBonus} = ${item.saveTotal} vs DC ${skill.saveDC}，${item.saved ? "成功，伤害减半" : "失败"}，受到 ${item.damage} 点伤害。`, "save");
+      this.uiManager.log(`${item.target.name} 进行 ${skill.saveType || "DEX"} 豁免：d20(${item.saveRoll}) + ${item.saveBonus} = ${item.saveTotal} vs DC ${item.saveDC || skill.saveDC}，${item.saved ? "成功，伤害减半" : "失败"}，受到 ${item.damage} 点伤害。`, "save");
       if (item.killed) this.uiManager.log(`${item.target.name} 被击倒！`, "system");
     }
     this.logSkillCost(attacker, skill);

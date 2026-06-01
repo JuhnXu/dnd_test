@@ -17,7 +17,25 @@
       "second_wind"
     ],
     "saveBonus": 1,
-    "avatar": "./assets/tokens/fighter.png"
+    "avatar": "./assets/tokens/fighter.png",
+    "className": "战士",
+    "classId": "fighter",
+    "level": 2,
+    "proficiencyBonus": 2,
+    "abilities": {
+      "STR": 16,
+      "DEX": 12,
+      "CON": 14,
+      "INT": 10,
+      "WIS": 11,
+      "CHA": 10
+    },
+    "attackAbility": "STR",
+    "damageAbility": "STR",
+    "saveProficiencies": [
+      "CON"
+    ],
+    "skillAbility": "STR"
   },
   {
     "id": "p2",
@@ -38,7 +56,25 @@
       "explosive_arrow"
     ],
     "saveBonus": 3,
-    "avatar": "./assets/tokens/ranger.png"
+    "avatar": "./assets/tokens/ranger.png",
+    "className": "游侠",
+    "classId": "ranger",
+    "level": 2,
+    "proficiencyBonus": 2,
+    "abilities": {
+      "STR": 10,
+      "DEX": 16,
+      "CON": 12,
+      "INT": 11,
+      "WIS": 14,
+      "CHA": 10
+    },
+    "attackAbility": "DEX",
+    "damageAbility": "DEX",
+    "saveProficiencies": [
+      "DEX"
+    ],
+    "skillAbility": "WIS"
   },
   {
     "id": "e1",
@@ -57,7 +93,25 @@
       "dirty_stab"
     ],
     "saveBonus": 2,
-    "avatar": "./assets/tokens/goblin_a.png"
+    "avatar": "./assets/tokens/goblin_a.png",
+    "className": "哥布林",
+    "classId": "goblin",
+    "level": 1,
+    "proficiencyBonus": 2,
+    "abilities": {
+      "STR": 8,
+      "DEX": 14,
+      "CON": 10,
+      "INT": 10,
+      "WIS": 8,
+      "CHA": 8
+    },
+    "attackAbility": "DEX",
+    "damageAbility": "DEX",
+    "saveProficiencies": [
+      "DEX"
+    ],
+    "skillAbility": "DEX"
   },
   {
     "id": "e2",
@@ -76,7 +130,25 @@
       "dirty_stab"
     ],
     "saveBonus": 2,
-    "avatar": "./assets/tokens/goblin_b.png"
+    "avatar": "./assets/tokens/goblin_b.png",
+    "className": "哥布林",
+    "classId": "goblin",
+    "level": 1,
+    "proficiencyBonus": 2,
+    "abilities": {
+      "STR": 8,
+      "DEX": 14,
+      "CON": 10,
+      "INT": 10,
+      "WIS": 8,
+      "CHA": 8
+    },
+    "attackAbility": "DEX",
+    "damageAbility": "DEX",
+    "saveProficiencies": [
+      "DEX"
+    ],
+    "skillAbility": "DEX"
   },
   {
     "id": "e3",
@@ -95,6 +167,24 @@
       "heavy_cleave"
     ],
     "saveBonus": 0,
-    "avatar": "./assets/tokens/orc.png"
+    "avatar": "./assets/tokens/orc.png",
+    "className": "兽人",
+    "classId": "orc",
+    "level": 1,
+    "proficiencyBonus": 2,
+    "abilities": {
+      "STR": 16,
+      "DEX": 10,
+      "CON": 14,
+      "INT": 7,
+      "WIS": 11,
+      "CHA": 10
+    },
+    "attackAbility": "STR",
+    "damageAbility": "STR",
+    "saveProficiencies": [
+      "CON"
+    ],
+    "skillAbility": "STR"
   }
 ]
