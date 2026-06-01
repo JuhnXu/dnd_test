@@ -1,22 +1,48 @@
+import { Dice } from "./dice.js";
+
 export class TurnManager {
-  constructor(units) { this.units = units; this.turnIndex = 0; }
-  reset(units) { this.units = units; this.turnIndex = 0; this.getCurrentUnit()?.resetTurnActions(); }
+  constructor(units) {
+    this.units = units;
+    this.turnIndex = 0;
+    this.initiativeOrder = [];
+  }
+
+  reset(units) {
+    this.units = units;
+    this.rollInitiative();
+    this.turnIndex = 0;
+    this.getCurrentUnit()?.resetTurnActions();
+  }
+
+  rollInitiative() {
+    for (const unit of this.units) {
+      unit.initiativeRoll = Dice.rollDie(20);
+      unit.initiativeTotal = unit.initiativeRoll + unit.initiativeBonus;
+    }
+    this.initiativeOrder = [...this.units].sort((a, b) => {
+      if (b.initiativeTotal !== a.initiativeTotal) return b.initiativeTotal - a.initiativeTotal;
+      return b.initiativeBonus - a.initiativeBonus;
+    });
+  }
+
   getCurrentUnit() {
-    if (this.units.length === 0) return null;
+    if (this.initiativeOrder.length === 0) return null;
     let safety = 0;
-    while (this.units[this.turnIndex] && !this.units[this.turnIndex].isAlive && safety < this.units.length) {
-      this.turnIndex = (this.turnIndex + 1) % this.units.length;
+    while (!this.initiativeOrder[this.turnIndex].isAlive && safety < this.initiativeOrder.length) {
+      this.turnIndex = (this.turnIndex + 1) % this.initiativeOrder.length;
       safety++;
     }
-    return this.units[this.turnIndex] || null;
+    return this.initiativeOrder[this.turnIndex] || null;
   }
+
   nextTurn() {
-    if (this.units.length === 0) return null;
+    if (this.initiativeOrder.length === 0) return null;
     let safety = 0;
     do {
-      this.turnIndex = (this.turnIndex + 1) % this.units.length;
+      this.turnIndex = (this.turnIndex + 1) % this.initiativeOrder.length;
       safety++;
-    } while (!this.units[this.turnIndex].isAlive && safety < this.units.length);
+    } while (!this.initiativeOrder[this.turnIndex].isAlive && safety < this.initiativeOrder.length);
+
     const current = this.getCurrentUnit();
     current?.resetTurnActions();
     return current;

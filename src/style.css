@@ -1,0 +1,33 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #1f2937;
+  color: #f9fafb;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 24px;
+}
+.app { display: grid; grid-template-columns: auto 380px; gap: 20px; max-width: 1120px; width: 100%; }
+.board-wrap, .panel { background: #111827; border: 1px solid #374151; border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,.35); padding: 16px; }
+canvas { display: block; background: #0f172a; border-radius: 10px; cursor: pointer; }
+h1 { font-size: 22px; margin: 0 0 8px; }
+h2 { font-size: 16px; margin: 18px 0 8px; color: #d1d5db; }
+.hint { color: #9ca3af; line-height: 1.55; font-size: 14px; margin-bottom: 12px; }
+.status { padding: 12px; border-radius: 12px; background: #1f2937; border: 1px solid #374151; margin: 12px 0; line-height: 1.6; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+button { border: 0; border-radius: 10px; padding: 10px 12px; font-weight: 700; color: #111827; background: #93c5fd; cursor: pointer; }
+button:hover:not(:disabled) { filter: brightness(1.08); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.unit-list, .initiative-list { display: grid; gap: 8px; }
+.unit-card, .initiative-card { padding: 10px; border-radius: 10px; background: #1f2937; border: 1px solid #374151; font-size: 14px; }
+.unit-card.active, .initiative-card.active { border-color: #facc15; box-shadow: 0 0 0 2px rgba(250,204,21,.18); }
+.unit-card.dead, .initiative-card.dead { opacity: .45; text-decoration: line-through; }
+.log { height: 240px; overflow: auto; padding: 10px; border-radius: 10px; background: #030712; border: 1px solid #374151; font-size: 13px; line-height: 1.55; }
+.log div { margin-bottom: 6px; }
+.player { color: #60a5fa; }
+.enemy { color: #f87171; }
+.system { color: #facc15; }
+.crit { color: #fb7185; font-weight: 700; }

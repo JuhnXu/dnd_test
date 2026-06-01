@@ -39,7 +39,11 @@ export class BattleManager {
     this.mode = ACTION_MODE.MOVE;
     this.battleEnded = false;
     this.uiManager.clearLog();
-    this.uiManager.log("战斗开始！", "system");
+    this.uiManager.log("战斗开始！已投先攻。", "system");
+    for (const unit of this.turnManager.initiativeOrder) {
+      this.uiManager.log(`${unit.name} 先攻：d20(${unit.initiativeRoll}) + ${unit.initiativeBonus} = ${unit.initiativeTotal}`, unit.team);
+    }
+    this.uiManager.log(`轮到 ${this.currentUnit.name}`, this.currentUnit.team);
     this.render();
     this.maybeRunEnemyTurn();
   }
@@ -61,9 +65,9 @@ export class BattleManager {
   }
 
   tryMove(unit, x, y) {
-    const moved = this.gridManager.moveUnit(unit, x, y);
-    if (!moved) return;
-    this.uiManager.log(`${unit.name} 移动到 (${x}, ${y})`, unit.team);
+    const cost = this.gridManager.moveUnit(unit, x, y);
+    if (!cost) return;
+    this.uiManager.log(`${unit.name} 移动到 (${x}, ${y})，消耗 ${cost} 格移动`, unit.team);
     this.render();
   }
 
@@ -75,9 +79,19 @@ export class BattleManager {
   }
 
   handleAttackResult(result) {
-    if (!result.success) { this.uiManager.log(result.reason, "system"); return; }
-    const { attacker, target, d20, attackBonus, attackTotal, targetAc, hit, damage, killed } = result;
+    if (!result.success) {
+      this.uiManager.log(result.reason, "system");
+      return;
+    }
+    const { attacker, target, d20, attackBonus, attackTotal, targetAc, hit, damage, killed, critical, naturalOne } = result;
     this.uiManager.log(`${attacker.name} 攻击 ${target.name}：d20(${d20}) + ${attackBonus} = ${attackTotal} vs AC ${targetAc}`, attacker.team);
+    if (naturalOne) {
+      this.uiManager.log("自然 1：大失败，必定未命中。", "crit");
+      return;
+    }
+    if (critical) {
+      this.uiManager.log("自然 20：重击！必定命中，伤害骰翻倍。", "crit");
+    }
     if (hit) {
       this.uiManager.log(`命中！造成 ${damage.total} 点伤害，${target.name} 剩余 HP ${target.hp}/${target.maxHp}`, "system");
       if (killed) this.uiManager.log(`${target.name} 被击倒！`, "system");
@@ -97,9 +111,7 @@ export class BattleManager {
 
   maybeRunEnemyTurn() {
     const current = this.currentUnit;
-    if (!this.battleEnded && current && current.team === TEAM.ENEMY) {
-      setTimeout(() => this.runEnemyTurn(), 500);
-    }
+    if (!this.battleEnded && current && current.team === TEAM.ENEMY) setTimeout(() => this.runEnemyTurn(), 500);
   }
 
   runEnemyTurn() {
@@ -107,7 +119,9 @@ export class BattleManager {
     const enemy = this.currentUnit;
     if (!enemy || enemy.team !== TEAM.ENEMY) return;
     const result = this.enemyAI.run(enemy, this.units);
-    if (result.type === "move" || result.type === "moveAndAttack") this.uiManager.log(`${enemy.name} 向 ${result.target.name} 靠近`, "enemy");
+    if (result.type === "move" || result.type === "moveAndAttack") {
+      this.uiManager.log(`${enemy.name} 向 ${result.target.name} 靠近，消耗 ${result.moved || 0} 格移动`, "enemy");
+    }
     if (result.attackResult) this.handleAttackResult(result.attackResult);
     this.checkBattleEnd();
     this.render();
@@ -125,6 +139,12 @@ export class BattleManager {
 
   render() {
     this.renderer.render({ units: this.units, currentUnit: this.currentUnit, mode: this.mode });
-    this.uiManager.render({ units: this.units, currentUnit: this.currentUnit, mode: this.mode, battleEnded: this.battleEnded });
+    this.uiManager.render({
+      units: this.units,
+      initiativeOrder: this.turnManager.initiativeOrder,
+      currentUnit: this.currentUnit,
+      mode: this.mode,
+      battleEnded: this.battleEnded,
+    });
   }
 }

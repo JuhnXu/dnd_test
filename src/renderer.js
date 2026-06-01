@@ -1,4 +1,4 @@
-import { ACTION_MODE, GRID_SIZE, TILE_SIZE, TEAM } from "./config.js";
+import { ACTION_MODE, GRID_SIZE, MAP_TILES, TILE_SIZE, TEAM, TERRAIN } from "./config.js";
 
 export class Renderer {
   constructor(canvas, gridManager, combatSystem) {
@@ -19,10 +19,18 @@ export class Renderer {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     for (let y = 0; y < GRID_SIZE; y++) {
       for (let x = 0; x < GRID_SIZE; x++) {
-        ctx.fillStyle = (x + y) % 2 === 0 ? "#1e293b" : "#273449";
+        const blocked = MAP_TILES[y][x] === TERRAIN.BLOCKED;
+        ctx.fillStyle = blocked ? "#111827" : ((x + y) % 2 === 0 ? "#1e293b" : "#273449");
         ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
         ctx.strokeStyle = "#475569";
         ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        if (blocked) {
+          ctx.fillStyle = "#6b7280";
+          ctx.font = "bold 28px system-ui";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("⬛", x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2);
+        }
       }
     }
   }
@@ -30,16 +38,25 @@ export class Renderer {
   drawHighlights(currentUnit, mode) {
     if (!currentUnit || currentUnit.team !== TEAM.PLAYER) return;
     const ctx = this.ctx;
-    for (let y = 0; y < GRID_SIZE; y++) {
-      for (let x = 0; x < GRID_SIZE; x++) {
-        if (mode === ACTION_MODE.MOVE && this.gridManager.canMoveTo(currentUnit, x, y)) {
-          ctx.fillStyle = "rgba(96, 165, 250, 0.25)";
-          ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-        }
-        const target = this.gridManager.getUnitAt(x, y);
-        if (mode === ACTION_MODE.ATTACK && target && this.combatSystem.canAttack(currentUnit, target)) {
-          ctx.fillStyle = "rgba(248, 113, 113, 0.35)";
-          ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    if (mode === ACTION_MODE.MOVE) {
+      for (const tile of this.gridManager.getReachableTiles(currentUnit)) {
+        ctx.fillStyle = "rgba(96, 165, 250, 0.25)";
+        ctx.fillRect(tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.font = "12px system-ui";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(String(tile.cost), (tile.x + 1) * TILE_SIZE - 6, (tile.y + 1) * TILE_SIZE - 6);
+      }
+    }
+    if (mode === ACTION_MODE.ATTACK) {
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          const target = this.gridManager.getUnitAt(x, y);
+          if (target && this.combatSystem.canAttack(currentUnit, target)) {
+            ctx.fillStyle = "rgba(248, 113, 113, 0.35)";
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          }
         }
       }
     }
@@ -61,7 +78,7 @@ export class Renderer {
         ctx.stroke();
         ctx.lineWidth = 1;
       }
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#fff";
       ctx.font = "bold 14px system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";

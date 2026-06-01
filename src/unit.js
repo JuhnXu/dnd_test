@@ -1,22 +1,23 @@
 export class Unit {
   constructor(config) {
-    this.id = config.id;
-    this.name = config.name;
-    this.team = config.team;
-    this.x = config.x;
-    this.y = config.y;
-    this.maxHp = config.maxHp;
+    Object.assign(this, config);
     this.hp = config.maxHp;
-    this.ac = config.ac;
-    this.move = config.move;
-    this.attackBonus = config.attackBonus;
-    this.damageDice = config.damageDice;
-    this.attackRange = config.attackRange || 1;
     this.hasMoved = false;
     this.hasAttacked = false;
+    this.remainingMove = config.move;
+    this.initiativeRoll = 0;
+    this.initiativeTotal = 0;
   }
 
   get isAlive() { return this.hp > 0; }
-  resetTurnActions() { this.hasMoved = false; this.hasAttacked = false; }
-  takeDamage(amount) { this.hp = Math.max(0, this.hp - amount); }
+
+  resetTurnActions() {
+    this.hasMoved = false;
+    this.hasAttacked = false;
+    this.remainingMove = this.move;
+  }
+
+  takeDamage(amount) {
+    this.hp = Math.max(0, this.hp - amount);
+  }
 }

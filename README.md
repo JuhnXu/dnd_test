@@ -1,26 +1,23 @@
-# DND HTML5 战棋战斗 Demo
+# DND HTML5 战棋战斗 Demo v2
 
-这是一个基于 HTML5 Canvas + JavaScript ES Modules 的 DND 风格 2D 方格战棋战斗 Demo。
+这是一个基于 HTML5 Canvas + ES Module 的 DND 风格 2D 战棋战斗 Demo。
 
-## 功能
+## v2 新增内容
 
-- 10x10 方格地图
-- 2 名玩家角色
-- 3 名敌人
-- 回合制
-- HP、AC、移动力、攻击加值、伤害骰
-- 普通移动
-- 普通攻击
-- d20 + 攻击加值 >= AC 命中判定
-- 简单敌人 AI
-- 一方全灭后结束战斗
+- 先攻系统 Initiative：战斗开始时每个单位投 `d20 + initiativeBonus`，按结果排序行动。
+- 暴击规则：自然 20 必定命中，伤害骰翻倍。
+- 大失败规则：自然 1 必定未命中。
+- BFS 移动范围：移动范围按实际可走路径计算，不再只是曼哈顿距离。
+- 障碍物：地图上黑色格子不可通过、不可停留。
+- UI 增加先攻顺序列表和剩余移动力显示。
 
 ## 运行方式
 
-由于项目使用了 ES Module，建议通过本地服务器运行：
+因为使用了 ES Module，不建议直接双击 index.html。
+
+在项目目录下执行：
 
 ```bash
-cd dnd-html5-demo
 python -m http.server 8000
 ```
 
@@ -33,7 +30,7 @@ http://localhost:8000
 ## 文件结构
 
 ```text
-/dnd-html5-demo
+/dnd-html5-demo-v2
   index.html
   README.md
   /src
@@ -48,4 +45,13 @@ http://localhost:8000
     enemyAI.js
     uiManager.js
     renderer.js
+    style.css
 ```
+
+## 下一步建议
+
+1. 加入技能系统。
+2. 加入移动路径动画。
+3. 拆分单位配置 JSON。
+4. 增加远程敌人 AI。
+5. 迁移到 Cocos Creator 3.8.6 + TypeScript。
