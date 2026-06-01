@@ -9,10 +9,13 @@ export class Renderer {
     this.skillSystem = skillSystem;
   }
 
-  render({ units, currentUnit, mode, selectedSkill, previewPath }) {
+  render({ units, currentUnit, mode, selectedSkill, previewPath, hoverTile, pendingAction }) {
     this.drawBoard();
     this.drawHighlights(currentUnit, mode, selectedSkill);
+    this.drawAoePreview(currentUnit, selectedSkill, hoverTile, units);
     this.drawPath(previewPath);
+    this.drawHoverTile(hoverTile);
+    this.drawPendingAction(pendingAction);
     this.drawUnits(units, currentUnit);
   }
 
@@ -55,14 +58,37 @@ export class Renderer {
       for (let y = 0; y < GRID_SIZE; y++) {
         for (let x = 0; x < GRID_SIZE; x++) {
           const target = this.gridManager.getUnitAt(x, y);
-          const canTarget = mode === ACTION_MODE.ATTACK
-            ? this.combatSystem.canAttack(currentUnit, target)
-            : this.skillSystem.canUseSkill(currentUnit, target, selectedSkill);
-          if (target && canTarget) {
-            ctx.fillStyle = "rgba(248, 113, 113, 0.35)";
+          let canTarget = false;
+          if (mode === ACTION_MODE.ATTACK) canTarget = this.combatSystem.canAttack(currentUnit, target);
+          else if (selectedSkill && this.skillSystem.isAreaSkill(selectedSkill)) canTarget = this.gridManager.getDistance(currentUnit, { x, y }) <= selectedSkill.range && !this.gridManager.isBlocked(x, y);
+          else canTarget = this.skillSystem.canUseSkill(currentUnit, target, selectedSkill);
+          if (canTarget) {
+            ctx.fillStyle = mode === ACTION_MODE.SKILL && selectedSkill && this.skillSystem.isAreaSkill(selectedSkill) ? "rgba(249,115,22,.22)" : "rgba(248, 113, 113, 0.35)";
             ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
           }
         }
+      }
+    }
+  }
+
+  drawAoePreview(currentUnit, selectedSkill, hoverTile, units) {
+    if (!currentUnit || !selectedSkill || !hoverTile || !this.skillSystem.isAreaSkill(selectedSkill)) return;
+    if (this.gridManager.getDistance(currentUnit, hoverTile) > selectedSkill.range) return;
+    const ctx = this.ctx;
+    for (let y = 0; y < GRID_SIZE; y++) {
+      for (let x = 0; x < GRID_SIZE; x++) {
+        if (this.gridManager.getDistance({ x, y }, hoverTile) <= (selectedSkill.radius || 0)) {
+          ctx.fillStyle = "rgba(249, 115, 22, 0.38)";
+          ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
+      }
+    }
+    for (const unit of units) {
+      if (unit.isAlive && unit.team !== currentUnit.team && this.gridManager.getDistance(unit, hoverTile) <= (selectedSkill.radius || 0)) {
+        ctx.strokeStyle = "#fed7aa";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(unit.x * TILE_SIZE + 4, unit.y * TILE_SIZE + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+        ctx.lineWidth = 1;
       }
     }
   }
@@ -76,6 +102,27 @@ export class Renderer {
     }
   }
 
+  drawHoverTile(tile) {
+    if (!tile) return;
+    const ctx = this.ctx;
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(tile.x * TILE_SIZE + 2, tile.y * TILE_SIZE + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+    ctx.lineWidth = 1;
+  }
+
+  drawPendingAction(action) {
+    if (!action) return;
+    const ctx = this.ctx;
+    const tiles = action.type === "move" ? action.path : action.center ? [action.center] : action.target ? [action.target] : [];
+    for (const tile of tiles) {
+      ctx.strokeStyle = "#86efac";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(tile.x * TILE_SIZE + 8, tile.y * TILE_SIZE + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+      ctx.lineWidth = 1;
+    }
+  }
+
   drawUnits(units, currentUnit) {
     const ctx = this.ctx;
     for (const unit of units) {
@@ -86,18 +133,8 @@ export class Renderer {
       ctx.arc(centerX, centerY, 23, 0, Math.PI * 2);
       ctx.fillStyle = unit.team === TEAM.PLAYER ? "#3b82f6" : "#ef4444";
       ctx.fill();
-      if (unit.isDefending) {
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "#22c55e";
-        ctx.stroke();
-        ctx.lineWidth = 1;
-      }
-      if (unit === currentUnit) {
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "#facc15";
-        ctx.stroke();
-        ctx.lineWidth = 1;
-      }
+      if (unit.isDefending) { ctx.lineWidth = 4; ctx.strokeStyle = "#22c55e"; ctx.stroke(); ctx.lineWidth = 1; }
+      if (unit === currentUnit) { ctx.lineWidth = 4; ctx.strokeStyle = "#facc15"; ctx.stroke(); ctx.lineWidth = 1; }
       ctx.fillStyle = "#fff";
       ctx.font = "bold 14px system-ui";
       ctx.textAlign = "center";

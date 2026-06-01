@@ -7,8 +7,12 @@ export class SkillSystem {
   getUnitSkills(unit) { return unit?.skills ? unit.skills.map(id => this.getSkill(id)).filter(Boolean) : []; }
   getState(user, skill) { return user?.skillState?.[skill?.id] || null; }
 
+  isAreaSkill(skill) { return skill?.type === "aoe" || skill?.targetType === "area"; }
+
   isValidTarget(user, target, skill) {
-    if (!user || !target || !skill || !user.isAlive || !target.isAlive) return false;
+    if (!user || !skill || !user.isAlive) return false;
+    if (this.isAreaSkill(skill)) return target && Number.isInteger(target.x) && Number.isInteger(target.y);
+    if (!target || !target.isAlive) return false;
     const targetType = skill.targetType || "enemy";
     if (targetType === "self") return user === target;
     if (targetType === "ally") return user.team === target.team;
@@ -45,8 +49,9 @@ export class SkillSystem {
     if (skill.endsAttack) user.hasAttacked = true;
   }
 
-  useSkill(user, target, skill) {
+  useSkill(user, target, skill, allUnits = []) {
     if (!this.canUseSkill(user, target, skill)) return { success: false, reason: "不能对该目标使用技能" };
+    if (this.isAreaSkill(skill)) return this.useAoeSkill(user, target, skill, allUnits);
     if ((skill.type || "attack") === "heal") return this.useHeal(user, target, skill);
     if (skill.type === "buff") return this.useBuff(user, target, skill);
     return this.useAttackSkill(user, target, skill);
@@ -64,6 +69,25 @@ export class SkillSystem {
     if (skill.statusEffect) target.addStatusEffect(skill.statusEffect);
     this.spendSkill(user, skill);
     return { success: true, kind: "buff", type: "skill", skill, attacker: user, target, statusEffect: skill.statusEffect };
+  }
+
+  useAoeSkill(user, center, skill, allUnits) {
+    const affected = allUnits
+      .filter(unit => unit.isAlive && unit.team !== user.team)
+      .filter(unit => this.gridManager.getDistance(unit, center) <= (skill.radius || 0));
+    const results = [];
+    for (const target of affected) {
+      const saveRoll = Dice.rollDie(20);
+      const saveBonus = target.saveBonus || 0;
+      const saveTotal = saveRoll + saveBonus;
+      const saved = saveTotal >= (skill.saveDC || 10);
+      const damage = Dice.rollDice(skill.damageDice || "1d6");
+      const finalDamage = saved && skill.halfOnSave ? Math.floor(damage.total / 2) : damage.total;
+      target.takeDamage(finalDamage);
+      results.push({ target, saveRoll, saveBonus, saveTotal, saved, damage: finalDamage, killed: !target.isAlive });
+    }
+    this.spendSkill(user, skill);
+    return { success: true, kind: "aoe", type: "skill", skill, attacker: user, center, affected: results };
   }
 
   useAttackSkill(user, target, skill) {

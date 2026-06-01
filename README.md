@@ -1,29 +1,27 @@
-# DND HTML5 战棋 Demo v5
+# DND HTML5 战棋 Demo v6
 
-## 本版新增
+## 新增内容
 
-- 状态效果系统
-  - 单位支持 `statusEffects`
-  - 支持 AC 加成、攻击加成、回合开始持续伤害/治疗
-  - 当前单位面板和单位列表会显示状态与剩余回合
-- 治疗技能
-  - 战士新增「复苏之息」：治疗自己 `1d10+2`
-- Buff 技能
-  - 游侠新增「守护印记」：给友军 AC +2，持续 2 回合
-- 位移技能
-  - 兽人「重劈推击」命中后把目标推开 1 格
-- 状态伤害技能
-  - 哥布林「淬毒刺击」命中后施加中毒，每回合受到 `1d4` 伤害，持续 2 回合
-- 技能目标类型
-  - `targetType: enemy / ally / self`
-  - 为之后接入 DND 法术和职业能力做准备
+1. 鼠标悬停提示
+   - 悬停格子显示坐标、地形、单位 HP/AC/攻击/豁免/状态。
+
+2. 路径预览
+   - 移动模式下悬停可达格子，会预览 BFS 路径。
+   - 点击目标格后进入行动确认，不会立刻执行。
+
+3. 行动确认 UI
+   - 移动、普通攻击、技能、防御都会先生成待确认行动。
+   - 点击“确认”后执行，点击“取消”可撤销选择。
+
+4. AOE / 豁免检定雏形
+   - 游侠新增技能“爆裂箭”。
+   - 选择区域中心后，半径 1 格内敌人进行 DEX 豁免。
+   - 豁免失败受到完整伤害，成功受到一半伤害。
 
 ## 运行方式
 
-由于项目使用 ES Module 和 fetch 读取 JSON，不能直接双击 `index.html`。
-
 ```bash
-cd dnd-html5-demo-v5
+cd dnd-html5-demo-v6
 python -m http.server 8000
 ```
 
@@ -33,34 +31,12 @@ python -m http.server 8000
 http://localhost:8000
 ```
 
-## 目录结构
-
-```text
-dnd-html5-demo-v5
-  index.html
-  data
-    map.json
-    units.json
-    skills.json
-  src
-    main.js
-    config.js
-    dice.js
-    unit.js
-    gridManager.js
-    combatSystem.js
-    skillSystem.js
-    statusEffectSystem.js
-    turnManager.js
-    enemyAI.js
-    uiManager.js
-    renderer.js
-    battleManager.js
-    style.css
-```
-
 ## 下一步建议
 
-- v6：路径预览、鼠标悬停提示、行动确认 UI
-- v6：更完整的法术模板，例如范围法术、AOE、豁免检定
-- v6：把效果系统改成更通用的 Effect Pipeline
+v7 可以继续做：
+
+- 行动系统拆成 ActionQueue / Command
+- 敌人使用 AOE 的安全判断
+- 法术模板：圆形、锥形、直线
+- 真实 DND 豁免属性：STR / DEX / CON / INT / WIS / CHA
+- 战斗结算面板和回合事件时间线

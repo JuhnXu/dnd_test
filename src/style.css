@@ -38,3 +38,12 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 
 .skill-card.disabled { opacity: .5; cursor: not-allowed; }
 .skill-card.disabled:hover { border-color: #374151; }
+
+.board-wrap { position: relative; }
+.tooltip { position: absolute; pointer-events: none; z-index: 5; max-width: 240px; padding: 8px 10px; border-radius: 10px; background: rgba(3,7,18,.94); border: 1px solid #64748b; color: #e5e7eb; font-size: 12px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.tooltip.hidden { display: none; }
+.confirm-panel { min-height: 46px; padding: 10px; border-radius: 10px; background: #1f2937; border: 1px solid #374151; font-size: 14px; line-height: 1.5; }
+.confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.confirm-actions button:first-child { background: #86efac; }
+.confirm-actions button:last-child { background: #fca5a5; }
+.aoe { color: #f97316; font-weight: 700; }

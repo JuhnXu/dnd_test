@@ -15,7 +15,8 @@
     "skills": [
       "power_attack",
       "second_wind"
-    ]
+    ],
+    "saveBonus": 1
   },
   {
     "id": "p2",
@@ -32,8 +33,10 @@
     "initiativeBonus": 3,
     "skills": [
       "aimed_shot",
-      "guardian_mark"
-    ]
+      "guardian_mark",
+      "explosive_arrow"
+    ],
+    "saveBonus": 3
   },
   {
     "id": "e1",
@@ -50,7 +53,8 @@
     "initiativeBonus": 2,
     "skills": [
       "dirty_stab"
-    ]
+    ],
+    "saveBonus": 2
   },
   {
     "id": "e2",
@@ -67,7 +71,8 @@
     "initiativeBonus": 2,
     "skills": [
       "dirty_stab"
-    ]
+    ],
+    "saveBonus": 2
   },
   {
     "id": "e3",
@@ -84,6 +89,7 @@
     "initiativeBonus": 1,
     "skills": [
       "heavy_cleave"
-    ]
+    ],
+    "saveBonus": 0
   }
 ]

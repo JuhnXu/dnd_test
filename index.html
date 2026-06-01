@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DND 战棋战斗 Demo v5</title>
+  <title>DND 战棋战斗 Demo v6</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
   <div class="app">
     <div class="board-wrap">
       <canvas id="battleCanvas" width="640" height="640"></canvas>
+      <div id="tooltip" class="tooltip hidden"></div>
     </div>
     <aside class="panel">
-      <h1>DND 2D 战棋 Demo v5</h1>
-      <div class="hint">v5 新增：状态效果、治疗、Buff 与位移技能。技能卡支持友军/自身/敌方目标。</div>
+      <h1>DND 2D 战棋 Demo v6</h1>
+      <div class="hint">v6 新增：鼠标悬停提示、路径预览、行动确认，以及 AOE/豁免检定雏形。</div>
       <div class="status" id="status"></div>
       <div class="actions">
         <button id="moveBtn">移动模式</button>
@@ -23,6 +24,7 @@
         <button id="endTurnBtn">结束回合</button>
         <button id="restartBtn">重新开始</button>
       </div>
+      <h2>行动确认</h2><div class="confirm-panel" id="confirmPanel"></div>
       <h2>技能</h2><div class="skill-list" id="skillList"></div>
       <h2>先攻顺序</h2><div class="initiative-list" id="initiativeList"></div>
       <h2>单位</h2><div class="unit-list" id="unitList"></div>

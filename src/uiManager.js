@@ -7,6 +7,8 @@ export class UIManager {
     this.unitListEl = document.getElementById("unitList");
     this.initiativeListEl = document.getElementById("initiativeList");
     this.logEl = document.getElementById("log");
+    this.confirmPanelEl = document.getElementById("confirmPanel");
+    this.tooltipEl = document.getElementById("tooltip");
     this.moveBtn = document.getElementById("moveBtn");
     this.attackBtn = document.getElementById("attackBtn");
     this.skillBtn = document.getElementById("skillBtn");
@@ -15,8 +17,10 @@ export class UIManager {
     this.restartBtn = document.getElementById("restartBtn");
   }
 
-  bindEvents({ onMoveMode, onAttackMode, onSkillMode, onSkillSelect, onDefend, onEndTurn, onRestart }) {
+  bindEvents({ onMoveMode, onAttackMode, onSkillMode, onSkillSelect, onDefend, onEndTurn, onRestart, onConfirmAction, onCancelAction }) {
     this.onSkillSelect = onSkillSelect;
+    this.onConfirmAction = onConfirmAction;
+    this.onCancelAction = onCancelAction;
     this.moveBtn.addEventListener("click", onMoveMode);
     this.attackBtn.addEventListener("click", onAttackMode);
     this.skillBtn.addEventListener("click", onSkillMode);
@@ -25,8 +29,9 @@ export class UIManager {
     this.restartBtn.addEventListener("click", onRestart);
   }
 
-  render({ units, initiativeOrder, currentUnit, mode, battleEnded, availableSkills, selectedSkillId, skillSystem, inputLocked }) {
+  render({ units, initiativeOrder, currentUnit, mode, battleEnded, availableSkills, selectedSkillId, skillSystem, inputLocked, pendingAction }) {
     this.renderStatus(currentUnit, mode, selectedSkillId, availableSkills);
+    this.renderConfirmPanel(pendingAction);
     this.renderSkills(currentUnit, availableSkills, selectedSkillId, battleEnded, skillSystem, inputLocked);
     this.renderInitiativeList(initiativeOrder, currentUnit);
     this.renderUnitList(units, currentUnit);
@@ -68,8 +73,10 @@ export class UIManager {
         ? `治疗 ${skill.healDice}${skill.healBonus ? ` + ${skill.healBonus}` : ""}`
         : skill.type === "buff"
           ? `状态 ${skill.statusEffect?.name || "Buff"}`
-          : `伤害 ${skill.damageDice}${skill.damageBonus ? ` + ${skill.damageBonus}` : ""}`;
-      const targetText = skill.targetType === "self" ? "自身" : skill.targetType === "ally" ? "友军" : "敌人";
+          : skill.type === "aoe"
+            ? `AOE 半径 ${skill.radius} | 伤害 ${skill.damageDice} | 豁免 DC ${skill.saveDC}`
+            : `伤害 ${skill.damageDice}${skill.damageBonus ? ` + ${skill.damageBonus}` : ""}`;
+      const targetText = skill.targetType === "self" ? "自身" : skill.targetType === "ally" ? "友军" : skill.targetType === "area" ? "区域" : "敌人";
       return `
         <div class="skill-card ${skill.id === selectedSkillId ? "active" : ""} ${disabled ? "disabled" : ""}" data-skill-id="${skill.id}">
           <div class="skill-name">${skill.name}</div>
@@ -83,6 +90,36 @@ export class UIManager {
         if (!battleEnded && !inputLocked && this.onSkillSelect) this.onSkillSelect(card.dataset.skillId);
       });
     });
+  }
+
+  renderConfirmPanel(pendingAction) {
+    if (!this.confirmPanelEl) return;
+    if (!pendingAction) {
+      this.confirmPanelEl.innerHTML = "选择移动、攻击或技能后，会先在这里确认再执行。";
+      return;
+    }
+    const text = pendingAction.label || "确认执行该行动？";
+    this.confirmPanelEl.innerHTML = `
+      <div>${text}</div>
+      <div class="confirm-actions">
+        <button id="confirmActionBtn">确认</button>
+        <button id="cancelActionBtn">取消</button>
+      </div>`;
+    this.confirmPanelEl.querySelector("#confirmActionBtn")?.addEventListener("click", () => this.onConfirmAction?.());
+    this.confirmPanelEl.querySelector("#cancelActionBtn")?.addEventListener("click", () => this.onCancelAction?.());
+  }
+
+  showTooltip(html, x, y) {
+    if (!this.tooltipEl) return;
+    this.tooltipEl.innerHTML = html;
+    this.tooltipEl.classList.remove("hidden");
+    this.tooltipEl.style.left = `${x + 14}px`;
+    this.tooltipEl.style.top = `${y + 14}px`;
+  }
+
+  hideTooltip() {
+    if (!this.tooltipEl) return;
+    this.tooltipEl.classList.add("hidden");
   }
 
   renderInitiativeList(initiativeOrder, currentUnit) {
