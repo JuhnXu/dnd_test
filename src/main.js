@@ -14,6 +14,9 @@ if (failedImages.length > 0) {
 
 const canvas = document.getElementById("battleCanvas");
 const battleManager = new BattleManager(canvas);
+// 游玩界面使用精简地图信息：关闭坐标/地形调试叠层，并减少悬停提示中的地图细节。
+battleManager.compactPlayUI = true;
+battleManager.renderer.debugOptions = { showCoords: false, showTerrain: false, showMoveCost: false, showReachable: false };
 
 battleManager.resetGame();
 window.__battleManager = battleManager;

@@ -9,7 +9,7 @@ export class Renderer {
     this.skillSystem = skillSystem;
     this.imageCache = new Map();
     this.onImageLoaded = null;
-    this.debugOptions = { showCoords: true, showTerrain: true, showMoveCost: false, showReachable: false };
+    this.debugOptions = { showCoords: false, showTerrain: false, showMoveCost: false, showReachable: false };
   }
 
   getAvatarImage(src) {

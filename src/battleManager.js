@@ -22,6 +22,7 @@ export class BattleManager {
     this.previewPath = null;
     this.hoverTile = null;
     this.pendingAction = null;
+    this.compactPlayUI = false;
     this.gridManager = new GridManager(this.units);
     this.combatSystem = new CombatSystem(this.gridManager);
     this.skillSystem = new SkillSystem(this.gridManager, SKILLS);
@@ -125,18 +126,28 @@ export class BattleManager {
     if (!this.gridManager.isInsideGrid(tile.x, tile.y)) { this.uiManager.hideTooltip(); return; }
     const unit = this.gridManager.getUnitAt(tile.x, tile.y);
     const current = this.currentUnit;
-    let html = `<strong>格子 (${tile.x}, ${tile.y})</strong><br>地形：${this.gridManager.getTerrainName(tile.x, tile.y)}`;
+    const compact = this.compactPlayUI;
+
+    let html = compact
+      ? `<strong>(${tile.x}, ${tile.y})</strong>`
+      : `<strong>格子 (${tile.x}, ${tile.y})</strong><br>地形：${this.gridManager.getTerrainName(tile.x, tile.y)}`;
+
     if (unit) {
-      html += `<br><strong class="${unit.team}">${unit.name}</strong><br>HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc}<br>攻击 +${unit.effectiveAttackBonus} | DEX豁免 ${unit.getSaveBonus ? (unit.getSaveBonus("DEX") >= 0 ? "+" + unit.getSaveBonus("DEX") : unit.getSaveBonus("DEX")) : "+" + (unit.saveBonus || 0)}<br>职业：${unit.className || "无"} Lv.${unit.level || 1} | 属性 STR ${unit.abilities?.STR ?? "-"} DEX ${unit.abilities?.DEX ?? "-"} CON ${unit.abilities?.CON ?? "-"}<br>${unit.spellcastingAbility ? `施法：${unit.spellcastingAbility} | 法攻 +${unit.getSpellAttackBonus()} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}` : "施法：无"}<br>状态：${[unit.isProne ? "倒地" : null, ...unit.statusEffects.map(e => `${e.name}(${e.duration})`)].filter(Boolean).join("、") || "无"}`;
+      if (compact) {
+        html += `<br><strong class="${unit.team}">${unit.name}</strong><br>HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc}<br>状态：${[unit.isProne ? "倒地" : null, ...unit.statusEffects.map(e => `${e.name}(${e.duration})`)].filter(Boolean).join("、") || "无"}`;
+      } else {
+        html += `<br><strong class="${unit.team}">${unit.name}</strong><br>HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc}<br>攻击 +${unit.effectiveAttackBonus} | DEX豁免 ${unit.getSaveBonus ? (unit.getSaveBonus("DEX") >= 0 ? "+" + unit.getSaveBonus("DEX") : unit.getSaveBonus("DEX")) : "+" + (unit.saveBonus || 0)}<br>职业：${unit.className || "无"} Lv.${unit.level || 1} | 属性 STR ${unit.abilities?.STR ?? "-"} DEX ${unit.abilities?.DEX ?? "-"} CON ${unit.abilities?.CON ?? "-"}<br>${unit.spellcastingAbility ? `施法：${unit.spellcastingAbility} | 法攻 +${unit.getSpellAttackBonus()} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}` : "施法：无"}<br>状态：${[unit.isProne ? "倒地" : null, ...unit.statusEffects.map(e => `${e.name}(${e.duration})`)].filter(Boolean).join("、") || "无"}`;
+      }
     }
-    if (current?.team === TEAM.PLAYER && this.mode === ACTION_MODE.MOVE) {
+
+    if (!compact && current?.team === TEAM.PLAYER && this.mode === ACTION_MODE.MOVE) {
       const plan = this.gridManager.findPath(current, tile.x, tile.y);
       if (plan) html += `<br>移动路径：${plan.cost} 格`;
     }
     const skill = this.selectedSkill;
     if (current?.team === TEAM.PLAYER && this.mode === ACTION_MODE.SKILL && skill && this.skillSystem.isAreaSkill(skill)) {
       const targets = this.units.filter(u => u.isAlive && u.team !== current.team && this.gridManager.getDistance(u, tile) <= (skill.radius || 0));
-      html += `<br><span class="aoe">${skill.name}</span>：影响 ${targets.length} 个敌人，${skill.saveType || "DEX"} 豁免 DC ${skill.saveDC || current.spellSaveDC}`;
+      html += `<br><span class="aoe">${skill.name}</span>：影响 ${targets.length} 个敌人${compact ? "" : `，${skill.saveType || "DEX"} 豁免 DC ${skill.saveDC || current.spellSaveDC}`}`;
     }
     this.uiManager.showTooltip(html, tile.px, tile.py);
   }
