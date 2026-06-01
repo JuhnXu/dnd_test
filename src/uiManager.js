@@ -131,10 +131,13 @@ export class UIManager {
 
   renderUnitList(units, currentUnit) {
     this.unitListEl.innerHTML = units.map(unit => `
-      <div class="unit-card ${unit === currentUnit ? "active" : ""} ${!unit.isAlive ? "dead" : ""}">
-        <strong class="${unit.team}">${unit.name}</strong><br>
-        HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc} | 移动 ${unit.move} | 攻击 +${unit.effectiveAttackBonus} | 伤害 ${unit.damageDice}${unit.isDefending ? " | 防御中" : ""}<br>
-        状态：${unit.statusEffects.length ? unit.statusEffects.map(effect => `${effect.name}(${effect.duration})`).join("、") : "无"}
+      <div class="unit-card unit-card-with-avatar ${unit === currentUnit ? "active" : ""} ${!unit.isAlive ? "dead" : ""}">
+        ${unit.avatar ? `<img class="unit-avatar" src="${unit.avatar}" alt="${unit.name}">` : ""}
+        <div>
+          <strong class="${unit.team}">${unit.name}</strong><br>
+          HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc} | 移动 ${unit.move} | 攻击 +${unit.effectiveAttackBonus} | 伤害 ${unit.damageDice}${unit.isDefending ? " | 防御中" : ""}<br>
+          状态：${unit.statusEffects.length ? unit.statusEffects.map(effect => `${effect.name}(${effect.duration})`).join("、") : "无"}
+        </div>
       </div>`).join("");
   }
 

@@ -7,6 +7,18 @@ export class Renderer {
     this.gridManager = gridManager;
     this.combatSystem = combatSystem;
     this.skillSystem = skillSystem;
+    this.imageCache = new Map();
+    this.onImageLoaded = null;
+  }
+
+  getAvatarImage(src) {
+    if (!src) return null;
+    if (this.imageCache.has(src)) return this.imageCache.get(src);
+    const image = new Image();
+    image.src = src;
+    image.onload = () => this.onImageLoaded?.();
+    this.imageCache.set(src, image);
+    return image;
   }
 
   render({ units, currentUnit, mode, selectedSkill, previewPath, hoverTile, pendingAction }) {
@@ -129,19 +141,45 @@ export class Renderer {
       if (!unit.isAlive) continue;
       const centerX = unit.x * TILE_SIZE + TILE_SIZE / 2;
       const centerY = unit.y * TILE_SIZE + TILE_SIZE / 2;
+      const radius = 26;
+
+      ctx.save();
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 23, 0, Math.PI * 2);
-      ctx.fillStyle = unit.team === TEAM.PLAYER ? "#3b82f6" : "#ef4444";
-      ctx.fill();
-      if (unit.isDefending) { ctx.lineWidth = 4; ctx.strokeStyle = "#22c55e"; ctx.stroke(); ctx.lineWidth = 1; }
-      if (unit === currentUnit) { ctx.lineWidth = 4; ctx.strokeStyle = "#facc15"; ctx.stroke(); ctx.lineWidth = 1; }
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
+      const avatar = this.getAvatarImage(unit.avatar);
+      if (avatar && avatar.complete && avatar.naturalWidth > 0) {
+        ctx.drawImage(avatar, centerX - radius, centerY - radius, radius * 2, radius * 2);
+      } else {
+        ctx.fillStyle = unit.team === TEAM.PLAYER ? "#3b82f6" : "#ef4444";
+        ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 14px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(unit.name.slice(0, 2), centerX, centerY);
+      }
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = unit.team === TEAM.PLAYER ? "#60a5fa" : "#f87171";
+      ctx.stroke();
+
+      if (unit.isDefending) { ctx.lineWidth = 5; ctx.strokeStyle = "#22c55e"; ctx.stroke(); }
+      if (unit === currentUnit) { ctx.lineWidth = 5; ctx.strokeStyle = "#facc15"; ctx.stroke(); }
+      ctx.lineWidth = 1;
+
+      ctx.fillStyle = "rgba(3, 7, 18, 0.82)";
+      ctx.fillRect(centerX - 23, centerY + 16, 46, 15);
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 14px system-ui";
+      ctx.font = "11px system-ui";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(unit.name.slice(0, 2), centerX, centerY - 4);
-      ctx.font = "12px system-ui";
-      ctx.fillText(`${unit.hp}/${unit.maxHp}`, centerX, centerY + 14);
+      ctx.fillText(`${unit.hp}/${unit.maxHp}`, centerX, centerY + 23);
     }
   }
 }

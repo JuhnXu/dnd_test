@@ -47,3 +47,20 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .confirm-actions button:first-child { background: #86efac; }
 .confirm-actions button:last-child { background: #fca5a5; }
 .aoe { color: #f97316; font-weight: 700; }
+
+
+.unit-card-with-avatar {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.unit-avatar {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 999px;
+  border: 2px solid #4b5563;
+  background: #030712;
+}

@@ -30,6 +30,7 @@ export class BattleManager {
     this.enemyAI = new EnemyAI(this.gridManager, this.combatSystem, this.skillSystem);
     this.uiManager = new UIManager();
     this.renderer = new Renderer(canvas, this.gridManager, this.combatSystem, this.skillSystem);
+    this.renderer.onImageLoaded = () => this.render();
     this.bindEvents();
   }
 
@@ -76,7 +77,7 @@ export class BattleManager {
     this.hoverTile = null;
     this.pendingAction = null;
     this.uiManager.clearLog();
-    this.uiManager.log("v6 战斗开始：悬停提示、路径预览、行动确认、AOE/豁免检定已启用。", "system");
+    this.uiManager.log("v7 战斗开始：头像 Token 已替换，悬停提示、路径预览、行动确认、AOE/豁免检定已启用。", "system");
     for (const unit of this.turnManager.initiativeOrder) {
       this.uiManager.log(`${unit.name} 先攻：d20(${unit.initiativeRoll}) + ${unit.initiativeBonus} = ${unit.initiativeTotal}`, unit.team);
     }

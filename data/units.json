@@ -16,7 +16,8 @@
       "power_attack",
       "second_wind"
     ],
-    "saveBonus": 1
+    "saveBonus": 1,
+    "avatar": "./assets/tokens/fighter.png"
   },
   {
     "id": "p2",
@@ -36,7 +37,8 @@
       "guardian_mark",
       "explosive_arrow"
     ],
-    "saveBonus": 3
+    "saveBonus": 3,
+    "avatar": "./assets/tokens/ranger.png"
   },
   {
     "id": "e1",
@@ -54,7 +56,8 @@
     "skills": [
       "dirty_stab"
     ],
-    "saveBonus": 2
+    "saveBonus": 2,
+    "avatar": "./assets/tokens/goblin_a.png"
   },
   {
     "id": "e2",
@@ -72,7 +75,8 @@
     "skills": [
       "dirty_stab"
     ],
-    "saveBonus": 2
+    "saveBonus": 2,
+    "avatar": "./assets/tokens/goblin_b.png"
   },
   {
     "id": "e3",
@@ -90,6 +94,7 @@
     "skills": [
       "heavy_cleave"
     ],
-    "saveBonus": 0
+    "saveBonus": 0,
+    "avatar": "./assets/tokens/orc.png"
   }
 ]

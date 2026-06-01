@@ -1,4 +1,4 @@
-# DND HTML5 战棋 Demo v6
+# DND HTML5 战棋 Demo v7
 
 ## 新增内容
 
@@ -21,7 +21,7 @@
 ## 运行方式
 
 ```bash
-cd dnd-html5-demo-v6
+cd dnd-html5-demo-v7
 python -m http.server 8000
 ```
 
@@ -40,3 +40,11 @@ v7 可以继续做：
 - 法术模板：圆形、锥形、直线
 - 真实 DND 豁免属性：STR / DEX / CON / INT / WIS / CHA
 - 战斗结算面板和回合事件时间线
+
+
+## v7 更新
+
+- 使用上传的头像合集切分出 Token 图片。
+- 玩家与敌人单位在棋盘上显示头像，不再只是圆形文字。
+- 单位列表同步显示小头像。
+- 新增资源目录：`assets/tokens/`。
