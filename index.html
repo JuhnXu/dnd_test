@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DND 战棋战斗 Demo v2</title>
+  <title>DND 战棋战斗 Demo v3</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
@@ -13,9 +13,9 @@
     </div>
 
     <aside class="panel">
-      <h1>DND 2D 战棋 Demo v2</h1>
+      <h1>DND 2D 战棋 Demo v3</h1>
       <div class="hint">
-        v2 新增：先攻排序、d20 暴击/大失败、BFS 移动范围、障碍物。点击蓝色高亮格移动，点击红色高亮敌人攻击。
+        v3 新增：技能系统与 JSON 数据配置。点击技能按钮后，再点击红色高亮敌人释放技能。
       </div>
 
       <div class="status" id="status"></div>
@@ -23,9 +23,13 @@
       <div class="actions">
         <button id="moveBtn">移动模式</button>
         <button id="attackBtn">攻击模式</button>
+        <button id="skillBtn">技能模式</button>
         <button id="endTurnBtn">结束回合</button>
         <button id="restartBtn">重新开始</button>
       </div>
+
+      <h2>技能</h2>
+      <div class="skill-list" id="skillList"></div>
 
       <h2>先攻顺序</h2>
       <div class="initiative-list" id="initiativeList"></div>

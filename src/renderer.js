@@ -1,16 +1,17 @@
 import { ACTION_MODE, GRID_SIZE, MAP_TILES, TILE_SIZE, TEAM, TERRAIN } from "./config.js";
 
 export class Renderer {
-  constructor(canvas, gridManager, combatSystem) {
+  constructor(canvas, gridManager, combatSystem, skillSystem) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.gridManager = gridManager;
     this.combatSystem = combatSystem;
+    this.skillSystem = skillSystem;
   }
 
-  render({ units, currentUnit, mode }) {
+  render({ units, currentUnit, mode, selectedSkill }) {
     this.drawBoard();
-    this.drawHighlights(currentUnit, mode);
+    this.drawHighlights(currentUnit, mode, selectedSkill);
     this.drawUnits(units, currentUnit);
   }
 
@@ -35,7 +36,7 @@ export class Renderer {
     }
   }
 
-  drawHighlights(currentUnit, mode) {
+  drawHighlights(currentUnit, mode, selectedSkill) {
     if (!currentUnit || currentUnit.team !== TEAM.PLAYER) return;
     const ctx = this.ctx;
     if (mode === ACTION_MODE.MOVE) {
@@ -49,11 +50,14 @@ export class Renderer {
         ctx.fillText(String(tile.cost), (tile.x + 1) * TILE_SIZE - 6, (tile.y + 1) * TILE_SIZE - 6);
       }
     }
-    if (mode === ACTION_MODE.ATTACK) {
+    if (mode === ACTION_MODE.ATTACK || mode === ACTION_MODE.SKILL) {
       for (let y = 0; y < GRID_SIZE; y++) {
         for (let x = 0; x < GRID_SIZE; x++) {
           const target = this.gridManager.getUnitAt(x, y);
-          if (target && this.combatSystem.canAttack(currentUnit, target)) {
+          const canTarget = mode === ACTION_MODE.ATTACK
+            ? this.combatSystem.canAttack(currentUnit, target)
+            : this.skillSystem.canUseSkill(currentUnit, target, selectedSkill);
+          if (target && canTarget) {
             ctx.fillStyle = "rgba(248, 113, 113, 0.35)";
             ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
           }

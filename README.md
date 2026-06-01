@@ -1,57 +1,62 @@
-# DND HTML5 战棋战斗 Demo v2
+# DND HTML5 战棋 Demo v3
 
-这是一个基于 HTML5 Canvas + ES Module 的 DND 风格 2D 战棋战斗 Demo。
+## 本版新增
 
-## v2 新增内容
-
-- 先攻系统 Initiative：战斗开始时每个单位投 `d20 + initiativeBonus`，按结果排序行动。
-- 暴击规则：自然 20 必定命中，伤害骰翻倍。
-- 大失败规则：自然 1 必定未命中。
-- BFS 移动范围：移动范围按实际可走路径计算，不再只是曼哈顿距离。
-- 障碍物：地图上黑色格子不可通过、不可停留。
-- UI 增加先攻顺序列表和剩余移动力显示。
+- 技能系统第一版
+  - 战士：猛力攻击
+  - 游侠：瞄准射击
+  - 哥布林：卑劣刺击
+  - 兽人：重劈
+- 数据 JSON 配置化
+  - `data/units.json`
+  - `data/skills.json`
+  - `data/map.json`
+- 玩家可点击技能卡选择技能，再点击红色高亮敌人释放技能
+- 敌人 AI 会优先使用自己的技能，无法使用时再普通攻击
 
 ## 运行方式
 
-因为使用了 ES Module，不建议直接双击 index.html。
-
-在项目目录下执行：
+由于项目使用 ES Module 和 fetch 读取 JSON，不能直接双击 `index.html`。
 
 ```bash
+cd dnd-html5-demo-v3
 python -m http.server 8000
 ```
 
-然后浏览器打开：
+浏览器打开：
 
 ```text
 http://localhost:8000
 ```
 
-## 文件结构
+## 目录结构
 
 ```text
-/dnd-html5-demo-v2
+dnd-html5-demo-v3
   index.html
-  README.md
-  /src
+  data
+    map.json
+    units.json
+    skills.json
+  src
     main.js
     config.js
     dice.js
     unit.js
-    battleManager.js
-    turnManager.js
     gridManager.js
     combatSystem.js
+    skillSystem.js
+    turnManager.js
     enemyAI.js
     uiManager.js
     renderer.js
+    battleManager.js
     style.css
 ```
 
 ## 下一步建议
 
-1. 加入技能系统。
-2. 加入移动路径动画。
-3. 拆分单位配置 JSON。
-4. 增加远程敌人 AI。
-5. 迁移到 Cocos Creator 3.8.6 + TypeScript。
+- 增加技能冷却 / 每场战斗使用次数
+- 增加治疗、防御、位移类技能
+- 增加路径动画
+- 将技能系统改造成更通用的 Effect 管线

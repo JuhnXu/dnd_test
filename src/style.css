@@ -21,9 +21,9 @@ h2 { font-size: 16px; margin: 18px 0 8px; color: #d1d5db; }
 button { border: 0; border-radius: 10px; padding: 10px 12px; font-weight: 700; color: #111827; background: #93c5fd; cursor: pointer; }
 button:hover:not(:disabled) { filter: brightness(1.08); }
 button:disabled { opacity: .45; cursor: not-allowed; }
-.unit-list, .initiative-list { display: grid; gap: 8px; }
-.unit-card, .initiative-card { padding: 10px; border-radius: 10px; background: #1f2937; border: 1px solid #374151; font-size: 14px; }
-.unit-card.active, .initiative-card.active { border-color: #facc15; box-shadow: 0 0 0 2px rgba(250,204,21,.18); }
+.unit-list, .initiative-list, .skill-list { display: grid; gap: 8px; }
+.unit-card, .initiative-card, .skill-card { padding: 10px; border-radius: 10px; background: #1f2937; border: 1px solid #374151; font-size: 14px; }
+.unit-card.active, .initiative-card.active, .skill-card.active { border-color: #facc15; box-shadow: 0 0 0 2px rgba(250,204,21,.18); }
 .unit-card.dead, .initiative-card.dead { opacity: .45; text-decoration: line-through; }
 .log { height: 240px; overflow: auto; padding: 10px; border-radius: 10px; background: #030712; border: 1px solid #374151; font-size: 13px; line-height: 1.55; }
 .log div { margin-bottom: 6px; }
@@ -31,3 +31,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .enemy { color: #f87171; }
 .system { color: #facc15; }
 .crit { color: #fb7185; font-weight: 700; }
+
+.skill-card { cursor: pointer; }
+.skill-card:hover { border-color: #93c5fd; }
+.skill-name { font-weight: 700; }
