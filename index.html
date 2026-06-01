@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DND 战棋战斗 Demo v6</title>
+  <title>DND 战棋战斗 Demo v8</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
   <div class="app">
     <div class="board-wrap">
+      <div id="turnBanner" class="turn-banner"></div>
       <canvas id="battleCanvas" width="640" height="640"></canvas>
       <div id="tooltip" class="tooltip hidden"></div>
     </div>
     <aside class="panel">
-      <h1>DND 2D 战棋 Demo v6</h1>
-      <div class="hint">v6 新增：鼠标悬停提示、路径预览、行动确认，以及 AOE/豁免检定雏形。</div>
+      <h1>DND 2D 战棋 Demo v8</h1>
+      <div class="hint">v8 新增：血条、状态图标、目标高亮、技能说明、日志颜色和回合流程提示。</div>
       <div class="status" id="status"></div>
       <div class="actions">
         <button id="moveBtn">移动模式</button>

@@ -2,6 +2,7 @@ import { ACTION_MODE, TEAM } from "./config.js";
 
 export class UIManager {
   constructor() {
+    this.turnBannerEl = document.getElementById("turnBanner");
     this.statusEl = document.getElementById("status");
     this.skillListEl = document.getElementById("skillList");
     this.unitListEl = document.getElementById("unitList");
@@ -30,12 +31,42 @@ export class UIManager {
   }
 
   render({ units, initiativeOrder, currentUnit, mode, battleEnded, availableSkills, selectedSkillId, skillSystem, inputLocked, pendingAction }) {
+    this.renderTurnBanner(currentUnit, mode, selectedSkillId, availableSkills, battleEnded, inputLocked);
     this.renderStatus(currentUnit, mode, selectedSkillId, availableSkills);
     this.renderConfirmPanel(pendingAction);
     this.renderSkills(currentUnit, availableSkills, selectedSkillId, battleEnded, skillSystem, inputLocked);
     this.renderInitiativeList(initiativeOrder, currentUnit);
     this.renderUnitList(units, currentUnit);
     this.renderButtons(currentUnit, battleEnded, availableSkills, inputLocked);
+  }
+
+  renderTurnBanner(currentUnit, mode, selectedSkillId, availableSkills, battleEnded, inputLocked) {
+    if (!this.turnBannerEl) return;
+    if (!currentUnit) {
+      this.turnBannerEl.innerHTML = `<span>无当前单位</span>`;
+      return;
+    }
+    const selectedSkill = availableSkills.find(skill => skill.id === selectedSkillId);
+    const modeText = mode === ACTION_MODE.MOVE ? "移动" : mode === ACTION_MODE.ATTACK ? "普通攻击" : `技能${selectedSkill ? `：${selectedSkill.name}` : ""}`;
+    const actionText = currentUnit.team === TEAM.PLAYER
+      ? `剩余移动 ${currentUnit.remainingMove}/${currentUnit.move}，动作${currentUnit.hasAttacked ? "已用" : "可用"}`
+      : inputLocked ? "敌人行动中" : "等待敌人行动";
+    const status = battleEnded ? "战斗结束" : inputLocked ? "处理中" : "等待操作";
+    this.turnBannerEl.innerHTML = `
+      <div><strong>${currentUnit.name}</strong> 的回合｜${modeText}｜${actionText}</div>
+      <div class="turn-pill">${status}</div>`;
+  }
+
+
+  renderStatusBadges(unit) {
+    const badges = [];
+    if (unit.isDefending) badges.push(`<span class="status-badge status-defense">🛡 防御</span>`);
+    for (const effect of unit.statusEffects) {
+      const cls = (effect.name || "").includes("毒") ? "status-poison" : effect.acBonus || effect.attackBonus ? "status-buff" : "";
+      const icon = (effect.name || "").includes("毒") ? "☠" : effect.acBonus ? "◆" : effect.attackBonus ? "⚔" : "✦";
+      badges.push(`<span class="status-badge ${cls}">${icon} ${effect.name} ${effect.duration}</span>`);
+    }
+    return badges.length ? `<div class="status-badges">${badges.join("")}</div>` : `<div class="status-badges"><span class="status-badge">无状态</span></div>`;
   }
 
   renderStatus(currentUnit, mode, selectedSkillId, availableSkills) {
@@ -50,7 +81,7 @@ export class UIManager {
       <strong>当前回合：</strong><span class="${currentUnit.team}">${currentUnit.name}</span><br>
       <strong>阵营：</strong>${currentUnit.team === TEAM.PLAYER ? "玩家" : "敌人"}<br>
       <strong>HP：</strong>${currentUnit.hp}/${currentUnit.maxHp}　<strong>AC：</strong>${currentUnit.effectiveAc}${defendText}<br>
-      <strong>状态：</strong>${statusText}<br>
+      <strong>状态：</strong>${statusText}${this.renderStatusBadges(currentUnit)}
       <strong>剩余移动：</strong>${currentUnit.remainingMove}/${currentUnit.move}<br>
       <strong>普通攻击：</strong>+${currentUnit.effectiveAttackBonus}，${currentUnit.damageDice}，范围 ${currentUnit.attackRange}<br>
       <strong>先攻：</strong>${currentUnit.initiativeRoll} + ${currentUnit.initiativeBonus} = ${currentUnit.initiativeTotal}<br>
@@ -77,12 +108,20 @@ export class UIManager {
             ? `AOE 半径 ${skill.radius} | 伤害 ${skill.damageDice} | 豁免 DC ${skill.saveDC}`
             : `伤害 ${skill.damageDice}${skill.damageBonus ? ` + ${skill.damageBonus}` : ""}`;
       const targetText = skill.targetType === "self" ? "自身" : skill.targetType === "ally" ? "友军" : skill.targetType === "area" ? "区域" : "敌人";
+      const tooltip = `名称：${skill.name}
+目标：${targetText}
+范围：${skill.range}
+${detail}
+冷却：${skill.cooldown || 0} 回合
+剩余次数：${uses}
+说明：${skill.description || "无"}`;
       return `
-        <div class="skill-card ${skill.id === selectedSkillId ? "active" : ""} ${disabled ? "disabled" : ""}" data-skill-id="${skill.id}">
+        <div class="skill-card ${skill.id === selectedSkillId ? "active" : ""} ${disabled ? "disabled" : ""}" data-skill-id="${skill.id}" data-tooltip="${tooltip.replace(/"/g, "&quot;")}">
           <div class="skill-name">${skill.name}</div>
-          <div>目标 ${targetText} | 范围 ${skill.range} | ${detail}</div>
-          <div>剩余 ${uses} 次 | 冷却 ${cd} 回合</div>
-          <div>${reason || skill.description}</div>
+          <div class="skill-meta">目标 ${targetText} | 范围 ${skill.range}</div>
+          <div class="skill-meta">${detail}</div>
+          <div class="skill-meta">剩余 ${uses} 次 | 冷却 ${cd} 回合</div>
+          <div class="skill-desc">${reason || skill.description}</div>
         </div>`;
     }).join("");
     this.skillListEl.querySelectorAll(".skill-card[data-skill-id]").forEach(card => {
@@ -135,8 +174,9 @@ export class UIManager {
         ${unit.avatar ? `<img class="unit-avatar" src="${unit.avatar}" alt="${unit.name}">` : ""}
         <div>
           <strong class="${unit.team}">${unit.name}</strong><br>
-          HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc} | 移动 ${unit.move} | 攻击 +${unit.effectiveAttackBonus} | 伤害 ${unit.damageDice}${unit.isDefending ? " | 防御中" : ""}<br>
-          状态：${unit.statusEffects.length ? unit.statusEffects.map(effect => `${effect.name}(${effect.duration})`).join("、") : "无"}
+          HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc} | 移动 ${unit.move} | 攻击 +${unit.effectiveAttackBonus} | 伤害 ${unit.damageDice}${unit.isDefending ? " | 防御中" : ""}
+          <div class="unit-hpbar"><div class="unit-hpbar-inner" style="width:${Math.max(0, Math.min(100, Math.round(unit.hp / unit.maxHp * 100)))}%"></div></div>
+          ${this.renderStatusBadges(unit)}
         </div>
       </div>`).join("");
   }

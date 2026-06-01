@@ -23,7 +23,7 @@ export class Renderer {
 
   render({ units, currentUnit, mode, selectedSkill, previewPath, hoverTile, pendingAction }) {
     this.drawBoard();
-    this.drawHighlights(currentUnit, mode, selectedSkill);
+    this.drawHighlights(currentUnit, mode, selectedSkill, units);
     this.drawAoePreview(currentUnit, selectedSkill, hoverTile, units);
     this.drawPath(previewPath);
     this.drawHoverTile(hoverTile);
@@ -52,7 +52,7 @@ export class Renderer {
     }
   }
 
-  drawHighlights(currentUnit, mode, selectedSkill) {
+  drawHighlights(currentUnit, mode, selectedSkill, units = []) {
     if (!currentUnit || currentUnit.team !== TEAM.PLAYER) return;
     const ctx = this.ctx;
     if (mode === ACTION_MODE.MOVE) {
@@ -75,8 +75,15 @@ export class Renderer {
           else if (selectedSkill && this.skillSystem.isAreaSkill(selectedSkill)) canTarget = this.gridManager.getDistance(currentUnit, { x, y }) <= selectedSkill.range && !this.gridManager.isBlocked(x, y);
           else canTarget = this.skillSystem.canUseSkill(currentUnit, target, selectedSkill);
           if (canTarget) {
-            ctx.fillStyle = mode === ACTION_MODE.SKILL && selectedSkill && this.skillSystem.isAreaSkill(selectedSkill) ? "rgba(249,115,22,.22)" : "rgba(248, 113, 113, 0.35)";
+            const isArea = mode === ACTION_MODE.SKILL && selectedSkill && this.skillSystem.isAreaSkill(selectedSkill);
+            const isAllySkill = mode === ACTION_MODE.SKILL && selectedSkill && selectedSkill.targetType === "ally";
+            const isSelfSkill = mode === ACTION_MODE.SKILL && selectedSkill && selectedSkill.targetType === "self";
+            ctx.fillStyle = isArea ? "rgba(249,115,22,.22)" : isAllySkill || isSelfSkill ? "rgba(34,197,94,.28)" : "rgba(248, 113, 113, 0.32)";
             ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.strokeStyle = isArea ? "#fb923c" : isAllySkill || isSelfSkill ? "#22c55e" : "#ef4444";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x * TILE_SIZE + 5, y * TILE_SIZE + 5, TILE_SIZE - 10, TILE_SIZE - 10);
+            ctx.lineWidth = 1;
           }
         }
       }
@@ -173,13 +180,55 @@ export class Renderer {
       if (unit === currentUnit) { ctx.lineWidth = 5; ctx.strokeStyle = "#facc15"; ctx.stroke(); }
       ctx.lineWidth = 1;
 
-      ctx.fillStyle = "rgba(3, 7, 18, 0.82)";
-      ctx.fillRect(centerX - 23, centerY + 16, 46, 15);
-      ctx.fillStyle = "#fff";
-      ctx.font = "11px system-ui";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(`${unit.hp}/${unit.maxHp}`, centerX, centerY + 23);
+      this.drawHealthBar(unit, centerX, centerY);
+      this.drawStatusIcons(unit, centerX, centerY);
     }
   }
+
+
+  drawHealthBar(unit, centerX, centerY) {
+    const ctx = this.ctx;
+    const width = 54;
+    const height = 8;
+    const x = centerX - width / 2;
+    const y = centerY + 29;
+    const pct = Math.max(0, Math.min(1, unit.hp / unit.maxHp));
+    ctx.fillStyle = "rgba(3, 7, 18, 0.88)";
+    ctx.fillRect(x, y, width, height);
+    ctx.fillStyle = pct > 0.5 ? "#22c55e" : pct > 0.25 ? "#facc15" : "#ef4444";
+    ctx.fillRect(x, y, width * pct, height);
+    ctx.strokeStyle = "#111827";
+    ctx.strokeRect(x, y, width, height);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(`${unit.hp}/${unit.maxHp}`, centerX, y - 1);
+  }
+
+  drawStatusIcons(unit, centerX, centerY) {
+    const ctx = this.ctx;
+    const icons = [];
+    if (unit.isDefending) icons.push({ text: "🛡", bg: "#166534" });
+    for (const effect of unit.statusEffects) {
+      const name = effect.name || "状态";
+      const icon = name.includes("毒") ? "☠" : name.includes("守护") || effect.acBonus ? "◆" : effect.attackBonus ? "⚔" : "✦";
+      const bg = name.includes("毒") ? "#365314" : effect.acBonus ? "#075985" : "#581c87";
+      icons.push({ text: icon, bg });
+    }
+    icons.slice(0, 4).forEach((icon, index) => {
+      const x = centerX - 27 + index * 16;
+      const y = centerY - 34;
+      ctx.beginPath();
+      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.fillStyle = icon.bg;
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "10px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(icon.text, x, y);
+    });
+  }
+
 }

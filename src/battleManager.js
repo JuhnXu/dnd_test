@@ -77,11 +77,11 @@ export class BattleManager {
     this.hoverTile = null;
     this.pendingAction = null;
     this.uiManager.clearLog();
-    this.uiManager.log("v7 战斗开始：头像 Token 已替换，悬停提示、路径预览、行动确认、AOE/豁免检定已启用。", "system");
+    this.uiManager.log("v8 战斗开始：血条、状态图标、目标高亮、技能说明、日志颜色和回合流程提示已启用。", "system");
     for (const unit of this.turnManager.initiativeOrder) {
       this.uiManager.log(`${unit.name} 先攻：d20(${unit.initiativeRoll}) + ${unit.initiativeBonus} = ${unit.initiativeTotal}`, unit.team);
     }
-    this.uiManager.log(`轮到 ${this.currentUnit.name}`, this.currentUnit.team);
+    this.uiManager.log(`轮到 ${this.currentUnit.name}`, "turn");
     this.render();
     this.maybeRunEnemyTurn();
   }
@@ -244,12 +244,12 @@ export class BattleManager {
     if (!result.success) { this.uiManager.log(result.reason, "system"); return; }
     if (result.kind === "heal") {
       const { attacker, target, skill, amount } = result;
-      this.uiManager.log(`${attacker.name} 使用 ${skill.name}，治疗 ${target.name} ${amount} 点 HP（${target.hp}/${target.maxHp}）。`, attacker.team);
+      this.uiManager.log(`${attacker.name} 使用 ${skill.name}，治疗 ${target.name} ${amount} 点 HP（${target.hp}/${target.maxHp}）。`, "heal");
       this.logSkillCost(attacker, skill); return;
     }
     if (result.kind === "buff") {
       const { attacker, target, skill, statusEffect } = result;
-      this.uiManager.log(`${attacker.name} 使用 ${skill.name}，${target.name} 获得状态：${statusEffect.name}（持续 ${statusEffect.duration} 回合）。`, attacker.team);
+      this.uiManager.log(`${attacker.name} 使用 ${skill.name}，${target.name} 获得状态：${statusEffect.name}（持续 ${statusEffect.duration} 回合）。`, "buff");
       this.logSkillCost(attacker, skill); return;
     }
     if (result.kind === "aoe") { this.handleAoeResult(result); return; }
@@ -261,7 +261,7 @@ export class BattleManager {
     this.uiManager.log(`${attacker.name} 使用 ${skill.name}，区域中心 (${center.x}, ${center.y})，影响 ${affected.length} 个敌人。`, attacker.team);
     if (affected.length === 0) this.uiManager.log("区域内没有敌人。", "system");
     for (const item of affected) {
-      this.uiManager.log(`${item.target.name} 进行 ${skill.saveType || "DEX"} 豁免：d20(${item.saveRoll}) + ${item.saveBonus} = ${item.saveTotal} vs DC ${skill.saveDC}，${item.saved ? "成功，伤害减半" : "失败"}，受到 ${item.damage} 点伤害。`, "aoe");
+      this.uiManager.log(`${item.target.name} 进行 ${skill.saveType || "DEX"} 豁免：d20(${item.saveRoll}) + ${item.saveBonus} = ${item.saveTotal} vs DC ${skill.saveDC}，${item.saved ? "成功，伤害减半" : "失败"}，受到 ${item.damage} 点伤害。`, "save");
       if (item.killed) this.uiManager.log(`${item.target.name} 被击倒！`, "system");
     }
     this.logSkillCost(attacker, skill);
@@ -276,13 +276,13 @@ export class BattleManager {
     if (critical) this.uiManager.log("自然 20：重击！必定命中，伤害骰翻倍。", "crit");
     if (hit) {
       const extra = skill?.damageBonus ? `，包含技能额外 +${skill.damageBonus} 伤害` : "";
-      this.uiManager.log(`命中！造成 ${damage.total} 点伤害${extra}，${target.name} 剩余 HP ${target.hp}/${target.maxHp}`, "system");
+      this.uiManager.log(`命中！造成 ${damage.total} 点伤害${extra}，${target.name} 剩余 HP ${target.hp}/${target.maxHp}`, "hit");
       if (statusEffect) this.uiManager.log(`${target.name} 获得状态：${statusEffect.name}（持续 ${statusEffect.duration} 回合）。`, "system");
       if (pushed) this.uiManager.log(`${target.name} 被推开 ${pushed} 格。`, "system");
       if (skill) this.logSkillCost(attacker, skill);
       if (killed) this.uiManager.log(`${target.name} 被击倒！`, "system");
     } else {
-      this.uiManager.log("未命中。", "system");
+      this.uiManager.log("未命中。", "miss");
       if (skill) this.logSkillCost(attacker, skill);
     }
   }
@@ -302,7 +302,7 @@ export class BattleManager {
     this.previewPath = null;
     this.pendingAction = null;
     if (next) {
-      this.uiManager.log(`轮到 ${next.name}`, next.team);
+      this.uiManager.log(`轮到 ${next.name}`, "turn");
       this.processTurnStartStatus(next);
       this.checkBattleEnd();
     }
@@ -313,8 +313,8 @@ export class BattleManager {
   processTurnStartStatus(unit) {
     const logs = this.statusEffectSystem.processTurnStart(unit);
     for (const log of logs) {
-      if (log.type === "damage") this.uiManager.log(`${unit.name} 受到 ${log.effect.name} 影响，受到 ${log.amount} 点伤害。`, "system");
-      if (log.type === "heal") this.uiManager.log(`${unit.name} 受到 ${log.effect.name} 影响，恢复 ${log.amount} 点 HP。`, "system");
+      if (log.type === "damage") this.uiManager.log(`${unit.name} 受到 ${log.effect.name} 影响，受到 ${log.amount} 点伤害。`, "damage");
+      if (log.type === "heal") this.uiManager.log(`${unit.name} 受到 ${log.effect.name} 影响，恢复 ${log.amount} 点 HP。`, "heal");
     }
     if (!unit.isAlive) this.uiManager.log(`${unit.name} 被状态效果击倒！`, "system");
   }
