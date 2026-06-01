@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DND 战棋战斗 Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1f2937;
+      color: #f9fafb;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: auto 360px;
+      gap: 20px;
+      max-width: 1100px;
+      width: 100%;
+    }
+
+    .board-wrap,
+    .panel {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      padding: 16px;
+    }
+
+    canvas {
+      display: block;
+      background: #0f172a;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0 0 8px;
+    }
+
+    h2 {
+      font-size: 16px;
+      margin: 18px 0 8px;
+      color: #d1d5db;
+    }
+
+    .hint {
+      color: #9ca3af;
+      line-height: 1.55;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 12px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 700;
+      color: #111827;
+      background: #93c5fd;
+      cursor: pointer;
+    }
+
+    button:hover:not(:disabled) {
+      filter: brightness(1.08);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .unit-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .unit-card {
+      padding: 10px;
+      border-radius: 10px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      font-size: 14px;
+    }
+
+    .unit-card.active {
+      border-color: #facc15;
+      box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.18);
+    }
+
+    .unit-card.dead {
+      opacity: 0.45;
+      text-decoration: line-through;
+    }
+
+    .log {
+      height: 260px;
+      overflow: auto;
+      padding: 10px;
+      border-radius: 10px;
+      background: #030712;
+      border: 1px solid #374151;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .log div {
+      margin-bottom: 6px;
+    }
+
+    .player {
+      color: #60a5fa;
+    }
+
+    .enemy {
+      color: #f87171;
+    }
+
+    .system {
+      color: #facc15;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="board-wrap">
+      <canvas id="battleCanvas" width="640" height="640"></canvas>
+    </div>
+
+    <aside class="panel">
+      <h1>DND 2D 战棋 Demo</h1>
+      <div class="hint">
+        规则简化：d20 + 攻击加值 ≥ AC 则命中。攻击命中后投伤害骰。玩家单位可移动一次、攻击一次，然后结束回合。
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <div class="actions">
+        <button id="moveBtn">移动模式</button>
+        <button id="attackBtn">攻击模式</button>
+        <button id="endTurnBtn">结束回合</button>
+        <button id="restartBtn">重新开始</button>
+      </div>
+
+      <h2>单位</h2>
+      <div class="unit-list" id="unitList"></div>
+
+      <h2>战斗日志</h2>
+      <div class="log" id="log"></div>
+    </aside>
+  </div>
+
+  <script>
+    const GRID_SIZE = 10;
+    const TILE_SIZE = 64;
+    const canvas = document.getElementById("battleCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const statusEl = document.getElementById("status");
+    const unitListEl = document.getElementById("unitList");
+    const logEl = document.getElementById("log");
+    const moveBtn = document.getElementById("moveBtn");
+    const attackBtn = document.getElementById("attackBtn");
+    const endTurnBtn = document.getElementById("endTurnBtn");
+    const restartBtn = document.getElementById("restartBtn");
+
+    let units = [];
+    let turnIndex = 0;
+    let mode = "move";
+    let selectedTile = null;
+    let battleEnded = false;
+
+    function createUnit(config) {
+      return {
+        id: config.id,
+        name: config.name,
+        team: config.team,
+        x: config.x,
+        y: config.y,
+        maxHp: config.maxHp,
+        hp: config.maxHp,
+        ac: config.ac,
+        move: config.move,
+        attackBonus: config.attackBonus,
+        damageDice: config.damageDice,
+        attackRange: config.attackRange || 1,
+        hasMoved: false,
+        hasAttacked: false,
+      };
+    }
+
+    function resetGame() {
+      units = [
+        createUnit({ id: "p1", name: "战士", team: "player", x: 1, y: 2, maxHp: 28, ac: 16, move: 6, attackBonus: 5, damageDice: "1d8+3" }),
+        createUnit({ id: "p2", name: "游侠", team: "player", x: 1, y: 6, maxHp: 22, ac: 14, move: 6, attackBonus: 5, damageDice: "1d6+3", attackRange: 4 }),
+        createUnit({ id: "e1", name: "哥布林 A", team: "enemy", x: 8, y: 2, maxHp: 12, ac: 13, move: 6, attackBonus: 4, damageDice: "1d6+2" }),
+        createUnit({ id: "e2", name: "哥布林 B", team: "enemy", x: 8, y: 5, maxHp: 12, ac: 13, move: 6, attackBonus: 4, damageDice: "1d6+2" }),
+        createUnit({ id: "e3", name: "兽人", team: "enemy", x: 8, y: 7, maxHp: 18, ac: 13, move: 5, attackBonus: 5, damageDice: "1d12+3" }),
+      ];
+      turnIndex = 0;
+      mode = "move";
+      selectedTile = null;
+      battleEnded = false;
+      logEl.innerHTML = "";
+      log("战斗开始！", "system");
+      render();
+      maybeRunEnemyTurn();
+    }
+
+    function getAliveUnits() {
+      return units.filter(unit => unit.hp > 0);
+    }
+
+    function getCurrentUnit() {
+      const alive = getAliveUnits();
+      if (alive.length === 0) return null;
+      while (units[turnIndex] && units[turnIndex].hp <= 0) {
+        turnIndex = (turnIndex + 1) % units.length;
+      }
+      return units[turnIndex];
+    }
+
+    function getUnitAt(x, y) {
+      return units.find(unit => unit.hp > 0 && unit.x === x && unit.y === y);
+    }
+
+    function isInsideGrid(x, y) {
+      return x >= 0 && y >= 0 && x < GRID_SIZE && y < GRID_SIZE;
+    }
+
+    function getDistance(a, b) {
+      return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    }
+
+    function canMoveTo(unit, x, y) {
+      if (!unit || unit.hasMoved) return false;
+      if (!isInsideGrid(x, y)) return false;
+      if (getUnitAt(x, y)) return false;
+      return getDistance(unit, { x, y }) <= unit.move;
+    }
+
+    function canAttack(attacker, target) {
+      if (!attacker || !target) return false;
+      if (attacker.team === target.team) return false;
+      if (attacker.hasAttacked) return false;
+      return getDistance(attacker, target) <= attacker.attackRange;
+    }
+
+    function rollDie(sides) {
+      return Math.floor(Math.random() * sides) + 1;
+    }
+
+    function rollDice(expression) {
+      const match = expression.match(/(\d+)d(\d+)([+-]\d+)?/i);
+      if (!match) throw new Error("Invalid dice expression: " + expression);
+
+      const count = Number(match[1]);
+      const sides = Number(match[2]);
+      const modifier = Number(match[3] || 0);
+      const rolls = [];
+
+      for (let i = 0; i < count; i++) {
+        rolls.push(rollDie(sides));
+      }
+
+      const total = rolls.reduce((sum, value) => sum + value, 0) + modifier;
+      return { total, rolls, modifier };
+    }
+
+    function attack(attacker, target) {
+      if (!canAttack(attacker, target)) return false;
+
+      const d20 = rollDie(20);
+      const attackTotal = d20 + attacker.attackBonus;
+      const hit = attackTotal >= target.ac;
+
+      log(`${attacker.name} 攻击 ${target.name}：d20(${d20}) + ${attacker.attackBonus} = ${attackTotal} vs AC ${target.ac}`, attacker.team);
+
+      if (hit) {
+        const damage = rollDice(attacker.damageDice);
+        target.hp = Math.max(0, target.hp - damage.total);
+        log(`命中！造成 ${damage.total} 点伤害，${target.name} 剩余 HP ${target.hp}/${target.maxHp}`, "system");
+
+        if (target.hp <= 0) {
+          log(`${target.name} 被击倒！`, "system");
+        }
+      } else {
+        log("未命中。", "system");
+      }
+
+      attacker.hasAttacked = true;
+      checkBattleEnd();
+      render();
+      return true;
+    }
+
+    function moveUnit(unit, x, y) {
+      if (!canMoveTo(unit, x, y)) return false;
+      unit.x = x;
+      unit.y = y;
+      unit.hasMoved = true;
+      log(`${unit.name} 移动到 (${x}, ${y})`, unit.team);
+      render();
+      return true;
+    }
+
+    function nextTurn() {
+      if (battleEnded) return;
+
+      const current = getCurrentUnit();
+      if (current) {
+        current.hasMoved = false;
+        current.hasAttacked = false;
+      }
+
+      do {
+        turnIndex = (turnIndex + 1) % units.length;
+      } while (units[turnIndex].hp <= 0);
+
+      const next = getCurrentUnit();
+      if (next) {
+        next.hasMoved = false;
+        next.hasAttacked = false;
+        selectedTile = null;
+        mode = "move";
+        log(`轮到 ${next.name}`, next.team);
+      }
+
+      render();
+      maybeRunEnemyTurn();
+    }
+
+    function checkBattleEnd() {
+      const playersAlive = units.some(unit => unit.team === "player" && unit.hp > 0);
+      const enemiesAlive = units.some(unit => unit.team === "enemy" && unit.hp > 0);
+
+      if (!playersAlive || !enemiesAlive) {
+        battleEnded = true;
+        log(playersAlive ? "玩家胜利！" : "敌人胜利！", "system");
+      }
+    }
+
+    function getNearestEnemy(unit) {
+      const targets = units.filter(other => other.hp > 0 && other.team !== unit.team);
+      targets.sort((a, b) => getDistance(unit, a) - getDistance(unit, b));
+      return targets[0] || null;
+    }
+
+    function getStepToward(unit, target) {
+      const candidates = [
+        { x: unit.x + 1, y: unit.y },
+        { x: unit.x - 1, y: unit.y },
+        { x: unit.x, y: unit.y + 1 },
+        { x: unit.x, y: unit.y - 1 },
+      ];
+
+      return candidates
+        .filter(tile => isInsideGrid(tile.x, tile.y) && !getUnitAt(tile.x, tile.y))
+        .sort((a, b) => getDistance(a, target) - getDistance(b, target))[0];
+    }
+
+    function runEnemyAI() {
+      if (battleEnded) return;
+      const enemy = getCurrentUnit();
+      if (!enemy || enemy.team !== "enemy") return;
+
+      const target = getNearestEnemy(enemy);
+      if (!target) return;
+
+      if (canAttack(enemy, target)) {
+        attack(enemy, target);
+        setTimeout(nextTurn, 500);
+        return;
+      }
+
+      let steps = enemy.move;
+      while (steps > 0 && getDistance(enemy, target) > enemy.attackRange) {
+        const nextStep = getStepToward(enemy, target);
+        if (!nextStep) break;
+        enemy.x = nextStep.x;
+        enemy.y = nextStep.y;
+        steps--;
+      }
+      enemy.hasMoved = true;
+      log(`${enemy.name} 向 ${target.name} 靠近`, "enemy");
+
+      if (canAttack(enemy, target)) {
+        attack(enemy, target);
+      }
+
+      render();
+      setTimeout(nextTurn, 650);
+    }
+
+    function maybeRunEnemyTurn() {
+      const current = getCurrentUnit();
+      if (!battleEnded && current && current.team === "enemy") {
+        setTimeout(runEnemyAI, 500);
+      }
+    }
+
+    function drawBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          ctx.fillStyle = (x + y) % 2 === 0 ? "#1e293b" : "#273449";
+          ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          ctx.strokeStyle = "#475569";
+          ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
+      }
+    }
+
+    function drawHighlights() {
+      const unit = getCurrentUnit();
+      if (!unit || unit.team !== "player") return;
+
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          if (mode === "move" && canMoveTo(unit, x, y)) {
+            ctx.fillStyle = "rgba(96, 165, 250, 0.25)";
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          }
+
+          const target = getUnitAt(x, y);
+          if (mode === "attack" && target && canAttack(unit, target)) {
+            ctx.fillStyle = "rgba(248, 113, 113, 0.35)";
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          }
+        }
+      }
+    }
+
+    function drawUnits() {
+      const current = getCurrentUnit();
+
+      for (const unit of units) {
+        if (unit.hp <= 0) continue;
+
+        const centerX = unit.x * TILE_SIZE + TILE_SIZE / 2;
+        const centerY = unit.y * TILE_SIZE + TILE_SIZE / 2;
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 23, 0, Math.PI * 2);
+        ctx.fillStyle = unit.team === "player" ? "#3b82f6" : "#ef4444";
+        ctx.fill();
+
+        if (unit === current) {
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "#facc15";
+          ctx.stroke();
+          ctx.lineWidth = 1;
+        }
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 14px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(unit.name.slice(0, 2), centerX, centerY - 4);
+
+        ctx.font = "12px system-ui";
+        ctx.fillText(`${unit.hp}/${unit.maxHp}`, centerX, centerY + 14);
+      }
+    }
+
+    function renderUI() {
+      const current = getCurrentUnit();
+
+      if (!current) {
+        statusEl.innerHTML = "无当前单位";
+        return;
+      }
+
+      statusEl.innerHTML = `
+        <strong>当前回合：</strong><span class="${current.team}">${current.name}</span><br>
+        <strong>阵营：</strong>${current.team === "player" ? "玩家" : "敌人"}<br>
+        <strong>HP：</strong>${current.hp}/${current.maxHp}　<strong>AC：</strong>${current.ac}<br>
+        <strong>移动：</strong>${current.move}　<strong>攻击：</strong>+${current.attackBonus}，${current.damageDice}<br>
+        <strong>模式：</strong>${mode === "move" ? "移动" : "攻击"}
+      `;
+
+      unitListEl.innerHTML = units.map(unit => `
+        <div class="unit-card ${unit === current ? "active" : ""} ${unit.hp <= 0 ? "dead" : ""}">
+          <strong class="${unit.team}">${unit.name}</strong><br>
+          HP ${unit.hp}/${unit.maxHp} | AC ${unit.ac} | 攻击 +${unit.attackBonus} | 伤害 ${unit.damageDice}
+        </div>
+      `).join("");
+
+      const playerTurn = current.team === "player" && !battleEnded;
+      moveBtn.disabled = !playerTurn || current.hasMoved;
+      attackBtn.disabled = !playerTurn || current.hasAttacked;
+      endTurnBtn.disabled = !playerTurn;
+    }
+
+    function render() {
+      drawBoard();
+      drawHighlights();
+      drawUnits();
+      renderUI();
+    }
+
+    function log(message, type = "system") {
+      const entry = document.createElement("div");
+      entry.className = type;
+      entry.textContent = message;
+      logEl.prepend(entry);
+    }
+
+    canvas.addEventListener("click", event => {
+      if (battleEnded) return;
+
+      const current = getCurrentUnit();
+      if (!current || current.team !== "player") return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((event.clientX - rect.left) / TILE_SIZE);
+      const y = Math.floor((event.clientY - rect.top) / TILE_SIZE);
+
+      if (mode === "move") {
+        moveUnit(current, x, y);
+      } else if (mode === "attack") {
+        const target = getUnitAt(x, y);
+        if (target) attack(current, target);
+      }
+    });
+
+    moveBtn.addEventListener("click", () => {
+      mode = "move";
+      render();
+    });
+
+    attackBtn.addEventListener("click", () => {
+      mode = "attack";
+      render();
+    });
+
+    endTurnBtn.addEventListener("click", nextTurn);
+    restartBtn.addEventListener("click", resetGame);
+
+    resetGame();
+  </script>
+</body>
+</html>
