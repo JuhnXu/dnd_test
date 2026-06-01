@@ -85,6 +85,7 @@ export class UIManager {
       <strong>状态：</strong>${statusText}${this.renderStatusBadges(currentUnit)}
       <strong>剩余移动：</strong>${currentUnit.remainingMove}/${currentUnit.move}<br>
       <strong>普通攻击：</strong>+${currentUnit.effectiveAttackBonus}，${currentUnit.damageDice}，范围 ${currentUnit.attackRange}<br>
+      <strong>施法：</strong>${currentUnit.spellcastingAbility ? `${currentUnit.spellcastingAbility}｜法术攻击 +${currentUnit.getSpellAttackBonus()}｜法术 DC ${currentUnit.spellSaveDC}｜法术位 ${currentUnit.getSpellSlotText()}` : "无"}<br>
       <strong>先攻：</strong>${currentUnit.initiativeRoll} + ${currentUnit.initiativeBonus} = ${currentUnit.initiativeTotal}<br>
       <strong>模式：</strong>${modeText}<br>
       <strong>属性：</strong>${ABILITIES.map(a => `${a} ${currentUnit.abilities?.[a] ?? 10}(${formatModifier(currentUnit.getAbilityModifier ? currentUnit.getAbilityModifier(a) : 0)})`).join(" ")}
@@ -102,13 +103,15 @@ export class UIManager {
       const disabled = Boolean(reason);
       const uses = state?.usesRemaining === null ? "∞" : state?.usesRemaining;
       const cd = state?.cooldownRemaining || 0;
+      const spellTag = skill.isSpell ? `${skill.spellLevel === 0 ? "戏法" : `${skill.spellLevel}环法术`} | ` : "";
+      const dcText = skill.isSpell ? (skill.saveDC || currentUnit.spellSaveDC) : skill.saveDC;
       const detail = skill.type === "heal"
-        ? `治疗 ${skill.healDice}${skill.healBonus ? ` + ${skill.healBonus}` : ""}`
+        ? `${spellTag}治疗 ${skill.healDice}${skill.healBonus ? ` + ${skill.healBonus}` : ""}${skill.healAddSpellAbility ? ` + ${currentUnit.spellcastingAbility}修正` : ""}`
         : skill.type === "buff"
-          ? `状态 ${skill.statusEffect?.name || "Buff"}`
+          ? `${spellTag}状态 ${skill.statusEffect?.name || "Buff"}`
           : skill.type === "aoe"
-            ? `AOE 半径 ${skill.radius} | 伤害 ${skill.damageDice} | 豁免 DC ${skill.saveDC}`
-            : `伤害 ${skill.damageDice}${skill.damageBonus ? ` + ${skill.damageBonus}` : ""}`;
+            ? `${spellTag}AOE 半径 ${skill.radius} | 伤害 ${skill.damageDice} | 豁免 DC ${dcText}`
+            : `${spellTag}${skill.useSpellAttack ? "法术攻击" : "攻击"} | 伤害 ${skill.damageDice}${skill.damageBonus ? ` + ${skill.damageBonus}` : ""}`;
       const targetText = skill.targetType === "self" ? "自身" : skill.targetType === "ally" ? "友军" : skill.targetType === "area" ? "区域" : "敌人";
       const tooltip = `名称：${skill.name}
 目标：${targetText}
@@ -116,6 +119,7 @@ export class UIManager {
 ${detail}
 冷却：${skill.cooldown || 0} 回合
 剩余次数：${uses}
+${skill.isSpell ? `法术：${skill.spellLevel === 0 ? "戏法" : `${skill.spellLevel} 环`} ${skill.school || ""} ${skill.spellSlotCost ? `| 消耗 ${skill.spellSlotCost} 环法术位` : "| 不消耗法术位"}` : ""}
 说明：${skill.description || "无"}`;
       return `
         <div class="skill-card ${skill.id === selectedSkillId ? "active" : ""} ${disabled ? "disabled" : ""}" data-skill-id="${skill.id}" data-tooltip="${tooltip.replace(/"/g, "&quot;")}">
@@ -176,7 +180,7 @@ ${detail}
         ${unit.avatar ? `<img class="unit-avatar" src="${unit.avatar}" alt="${unit.name}">` : ""}
         <div>
           <strong class="${unit.team}">${unit.name}</strong><br>
-          HP ${unit.hp}/${unit.maxHp} | ${unit.className || "无职业"} Lv.${unit.level || 1} | AC ${unit.effectiveAc} | 攻击 ${formatModifier(unit.effectiveAttackBonus)} | 先攻 ${formatModifier(unit.initiativeBonus || 0)}${unit.isDefending ? " | 防御中" : ""}<br><span class="ability-line">${ABILITIES.map(a => `${a} ${unit.abilities?.[a] ?? 10}(${formatModifier(unit.getAbilityModifier ? unit.getAbilityModifier(a) : 0)})`).join(" ")}</span>
+          HP ${unit.hp}/${unit.maxHp} | ${unit.className || "无职业"} Lv.${unit.level || 1} | AC ${unit.effectiveAc} | 攻击 ${formatModifier(unit.effectiveAttackBonus)} | 先攻 ${formatModifier(unit.initiativeBonus || 0)}${unit.isDefending ? " | 防御中" : ""}<br>${unit.spellcastingAbility ? `<span class="ability-line">施法 ${unit.spellcastingAbility} | 法攻 ${formatModifier(unit.getSpellAttackBonus())} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}</span><br>` : ""}<span class="ability-line">${ABILITIES.map(a => `${a} ${unit.abilities?.[a] ?? 10}(${formatModifier(unit.getAbilityModifier ? unit.getAbilityModifier(a) : 0)})`).join(" ")}</span>
           <div class="unit-hpbar"><div class="unit-hpbar-inner" style="width:${Math.max(0, Math.min(100, Math.round(unit.hp / unit.maxHp * 100)))}%"></div></div>
           ${this.renderStatusBadges(unit)}
         </div>

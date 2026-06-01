@@ -23,6 +23,7 @@ export class SkillSystem {
   canUseSkill(user, target, skill) {
     if (!this.isValidTarget(user, target, skill)) return false;
     if (user.hasAttacked && skill.endsAttack) return false;
+    if (skill.isSpell && skill.spellSlotCost && !user.hasSpellSlot?.(skill.spellSlotCost)) return false;
     const state = this.getState(user, skill);
     if (state) {
       if (state.cooldownRemaining > 0) return false;
@@ -36,6 +37,7 @@ export class SkillSystem {
     if (!state) return "";
     if (state.cooldownRemaining > 0) return `冷却中：${state.cooldownRemaining} 回合`;
     if (state.usesRemaining !== null && state.usesRemaining <= 0) return "使用次数已耗尽";
+    if (skill.isSpell && skill.spellSlotCost && !user.hasSpellSlot?.(skill.spellSlotCost)) return `${skill.spellSlotCost} 环法术位不足`;
     if (user.hasAttacked && skill.endsAttack) return "本回合已用过动作";
     return "";
   }
@@ -46,6 +48,7 @@ export class SkillSystem {
       state.cooldownRemaining = skill.cooldown || 0;
       if (state.usesRemaining !== null) state.usesRemaining -= 1;
     }
+    if (skill.isSpell && skill.spellSlotCost) user.spendSpellSlot?.(skill.spellSlotCost);
     if (skill.endsAttack) user.hasAttacked = true;
   }
 
@@ -60,7 +63,8 @@ export class SkillSystem {
   useHeal(user, target, skill) {
     const before = target.hp;
     const heal = Dice.rollDice(skill.healDice || "1d4");
-    target.heal(heal.total + (skill.healBonus || 0));
+    const abilityBonus = skill.healAddSpellAbility ? (user.spellAbilityModifier || 0) : 0;
+    target.heal(heal.total + (skill.healBonus || 0) + abilityBonus);
     this.spendSkill(user, skill);
     return { success: true, kind: "heal", type: "skill", skill, attacker: user, target, heal, amount: target.hp - before };
   }
@@ -80,7 +84,7 @@ export class SkillSystem {
       const saveRoll = Dice.rollDie(20);
       const saveBonus = target.getSaveBonus ? target.getSaveBonus(skill.saveType || "DEX") : (target.saveBonus || 0);
       const saveTotal = saveRoll + saveBonus;
-      const dc = skill.saveDC || user.spellSaveDC || 10;
+      const dc = skill.saveDC || (skill.isSpell ? user.spellSaveDC : null) || user.spellSaveDC || 10;
       const saved = saveTotal >= dc;
       const damage = Dice.rollDice(skill.damageDice || "1d6");
       const finalDamage = saved && skill.halfOnSave ? Math.floor(damage.total / 2) : damage.total;

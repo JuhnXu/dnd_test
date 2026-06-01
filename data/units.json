@@ -53,11 +53,14 @@
     "skills": [
       "aimed_shot",
       "guardian_mark",
-      "explosive_arrow"
+      "explosive_arrow",
+      "fire_bolt",
+      "healing_word",
+      "burning_hands"
     ],
     "saveBonus": 3,
     "avatar": "./assets/tokens/ranger.png",
-    "className": "游侠",
+    "className": "游侠 / 半施法者",
     "classId": "ranger",
     "level": 2,
     "proficiencyBonus": 2,
@@ -74,7 +77,14 @@
     "saveProficiencies": [
       "DEX"
     ],
-    "skillAbility": "WIS"
+    "skillAbility": "WIS",
+    "spellcastingAbility": "WIS",
+    "spellSlots": {
+      "1": {
+        "max": 2,
+        "remaining": 2
+      }
+    }
   },
   {
     "id": "e1",
@@ -127,11 +137,12 @@
     "attackRange": 1,
     "initiativeBonus": 2,
     "skills": [
-      "dirty_stab"
+      "dirty_stab",
+      "shadow_bolt"
     ],
     "saveBonus": 2,
     "avatar": "./assets/tokens/goblin_b.png",
-    "className": "哥布林",
+    "className": "哥布林咒术者",
     "classId": "goblin",
     "level": 1,
     "proficiencyBonus": 2,
@@ -148,7 +159,9 @@
     "saveProficiencies": [
       "DEX"
     ],
-    "skillAbility": "DEX"
+    "skillAbility": "DEX",
+    "spellcastingAbility": "INT",
+    "spellSlots": {}
   },
   {
     "id": "e3",

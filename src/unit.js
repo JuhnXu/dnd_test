@@ -14,6 +14,7 @@ export class Unit {
     this.initiativeTotal = 0;
     this.skillState = {};
     this.statusEffects = [];
+    this.spellSlots = JSON.parse(JSON.stringify(config.spellSlots || {}));
   }
 
   get isAlive() { return this.hp > 0; }
@@ -28,8 +29,27 @@ export class Unit {
   get damageAbilityModifier() { return this.getAbilityModifier(this.damageAbility || this.attackAbility || "STR"); }
   get effectiveAttackBonus() { return this.proficiency + this.attackAbilityModifier + this.attackBonusFromStatus; }
   get initiativeBonusCalculated() { return this.getAbilityModifier("DEX"); }
-  get spellSaveDC() { return 8 + this.proficiency + this.getAbilityModifier(this.skillAbility || "WIS"); }
-  getSpellAttackBonus() { return this.proficiency + this.getAbilityModifier(this.skillAbility || this.attackAbility || "STR") + this.attackBonusFromStatus; }
+  get spellAbility() { return this.spellcastingAbility || this.skillAbility || "WIS"; }
+  get spellAbilityModifier() { return this.getAbilityModifier(this.spellAbility); }
+  get spellSaveDC() { return 8 + this.proficiency + this.spellAbilityModifier; }
+  getSpellAttackBonus() { return this.proficiency + this.spellAbilityModifier + this.attackBonusFromStatus; }
+  hasSpellSlot(level) {
+    if (!level || Number(level) <= 0) return true;
+    const slot = this.spellSlots?.[String(level)];
+    return Boolean(slot && slot.remaining > 0);
+  }
+  spendSpellSlot(level) {
+    if (!level || Number(level) <= 0) return true;
+    const slot = this.spellSlots?.[String(level)];
+    if (!slot || slot.remaining <= 0) return false;
+    slot.remaining -= 1;
+    return true;
+  }
+  getSpellSlotText() {
+    const entries = Object.entries(this.spellSlots || {});
+    if (!entries.length) return "无";
+    return entries.map(([level, slot]) => `${level}环 ${slot.remaining}/${slot.max}`).join("，");
+  }
   getSaveBonus(ability) {
     const mod = this.getAbilityModifier(ability || "DEX");
     const prof = this.saveProficiencies?.includes(ability) ? this.proficiency : 0;

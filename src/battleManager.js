@@ -77,7 +77,7 @@ export class BattleManager {
     this.hoverTile = null;
     this.pendingAction = null;
     this.uiManager.clearLog();
-    this.uiManager.log("v9 战斗开始：职业与六项属性系统已启用，攻击、先攻、豁免会按属性修正计算。", "system");
+    this.uiManager.log("v10 战斗开始：法术系统雏形已启用，法术攻击、法术 DC 与法术位会按施法属性计算。", "system");
     for (const unit of this.turnManager.initiativeOrder) {
       this.uiManager.log(`${unit.name} 先攻：d20(${unit.initiativeRoll}) + 敏捷修正${unit.initiativeBonus >= 0 ? "+" + unit.initiativeBonus : unit.initiativeBonus} = ${unit.initiativeTotal}`, unit.team);
     }
@@ -120,7 +120,7 @@ export class BattleManager {
     const current = this.currentUnit;
     let html = `<strong>格子 (${tile.x}, ${tile.y})</strong><br>${blocked ? "地形：障碍物" : "地形：普通"}`;
     if (unit) {
-      html += `<br><strong class="${unit.team}">${unit.name}</strong><br>HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc}<br>攻击 +${unit.effectiveAttackBonus} | DEX豁免 ${unit.getSaveBonus ? (unit.getSaveBonus("DEX") >= 0 ? "+" + unit.getSaveBonus("DEX") : unit.getSaveBonus("DEX")) : "+" + (unit.saveBonus || 0)}<br>职业：${unit.className || "无"} Lv.${unit.level || 1} | 属性 STR ${unit.abilities?.STR ?? "-"} DEX ${unit.abilities?.DEX ?? "-"} CON ${unit.abilities?.CON ?? "-"}<br>状态：${unit.statusEffects.length ? unit.statusEffects.map(e => `${e.name}(${e.duration})`).join("、") : "无"}`;
+      html += `<br><strong class="${unit.team}">${unit.name}</strong><br>HP ${unit.hp}/${unit.maxHp} | AC ${unit.effectiveAc}<br>攻击 +${unit.effectiveAttackBonus} | DEX豁免 ${unit.getSaveBonus ? (unit.getSaveBonus("DEX") >= 0 ? "+" + unit.getSaveBonus("DEX") : unit.getSaveBonus("DEX")) : "+" + (unit.saveBonus || 0)}<br>职业：${unit.className || "无"} Lv.${unit.level || 1} | 属性 STR ${unit.abilities?.STR ?? "-"} DEX ${unit.abilities?.DEX ?? "-"} CON ${unit.abilities?.CON ?? "-"}<br>${unit.spellcastingAbility ? `施法：${unit.spellcastingAbility} | 法攻 +${unit.getSpellAttackBonus()} | DC ${unit.spellSaveDC} | 法术位 ${unit.getSpellSlotText()}` : "施法：无"}<br>状态：${unit.statusEffects.length ? unit.statusEffects.map(e => `${e.name}(${e.duration})`).join("、") : "无"}`;
     }
     if (current?.team === TEAM.PLAYER && this.mode === ACTION_MODE.MOVE) {
       const plan = this.gridManager.findPath(current, tile.x, tile.y);
@@ -129,7 +129,7 @@ export class BattleManager {
     const skill = this.selectedSkill;
     if (current?.team === TEAM.PLAYER && this.mode === ACTION_MODE.SKILL && skill && this.skillSystem.isAreaSkill(skill)) {
       const targets = this.units.filter(u => u.isAlive && u.team !== current.team && this.gridManager.getDistance(u, tile) <= (skill.radius || 0));
-      html += `<br><span class="aoe">${skill.name}</span>：影响 ${targets.length} 个敌人，${skill.saveType || "DEX"} 豁免 DC ${skill.saveDC}`;
+      html += `<br><span class="aoe">${skill.name}</span>：影响 ${targets.length} 个敌人，${skill.saveType || "DEX"} 豁免 DC ${skill.saveDC || current.spellSaveDC}`;
     }
     this.uiManager.showTooltip(html, tile.px, tile.py);
   }
@@ -291,7 +291,8 @@ export class BattleManager {
     const state = attacker.skillState[skill.id];
     if (!state) return;
     const uses = state.usesRemaining === null ? "∞" : state.usesRemaining;
-    this.uiManager.log(`${skill.name} 进入冷却 ${state.cooldownRemaining} 回合，剩余使用次数 ${uses}。`, "system");
+    const spellCost = skill.isSpell && skill.spellSlotCost ? `，消耗 ${skill.spellSlotCost} 环法术位，当前法术位：${attacker.getSpellSlotText?.() || "无"}` : "";
+    this.uiManager.log(`${skill.name} 进入冷却 ${state.cooldownRemaining} 回合，剩余使用次数 ${uses}${spellCost}。`, "system");
   }
 
   nextTurn() {
