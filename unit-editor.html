@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DND 战棋战斗 Demo v18.2.5 单位编辑器</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div class="unit-editor-page app-wide">
+    <header class="editor-header">
+      <div>
+        <h1>DND 单位编辑器 v18.2.5</h1>
+        <p>独立编辑玩家、怪物和 NPC 数据。保存到浏览器后，关卡编辑器和游玩界面都会读取这些单位数据。</p>
+      </div>
+      <nav class="top-links">
+        <a href="./index.html">进入游玩界面</a>
+        <a href="./editor.html">关卡编辑器</a>
+      </nav>
+    </header>
+    <main class="unit-editor-layout">
+      <aside class="unit-editor-sidebar dock-card">
+        <h2>单位数据列表</h2>
+        <button id="newUnitBtn">新增单位</button>
+        <div id="unitCatalog" class="unit-data-catalog"></div>
+      </aside>
+      <section class="unit-editor-main dock-card">
+        <h2>单位属性</h2>
+        <div class="unit-editor-grid large">
+          <label>ID<input id="unitIdInput"></label>
+          <label>名称<input id="unitNameInput"></label>
+          <label>阵营<select id="unitTeamInput"><option value="player">player</option><option value="enemy">enemy</option></select></label>
+          <label>职业/类型<input id="unitClassInput"></label>
+          <label>等级<input id="unitLevelInput" type="number" min="1" max="20"></label>
+          <label>头像路径<input id="unitAvatarInput"></label>
+          <label>HP<input id="unitHpInput" type="number" min="0"></label>
+          <label>Max HP<input id="unitMaxHpInput" type="number" min="1"></label>
+          <label>AC<input id="unitAcInput" type="number" min="1"></label>
+          <label>移动<input id="unitMoveInput" type="number" min="0"></label>
+          <label>熟练<input id="unitProfInput" type="number" min="0"></label>
+          <label>伤害骰<input id="unitDamageDiceInput"></label>
+          <label>攻击属性<select id="unitAttackAbilityInput"><option>STR</option><option>DEX</option><option>CON</option><option>INT</option><option>WIS</option><option>CHA</option></select></label>
+          <label>伤害属性<select id="unitDamageAbilityInput"><option>STR</option><option>DEX</option><option>CON</option><option>INT</option><option>WIS</option><option>CHA</option></select></label>
+          <label>施法属性<select id="unitSpellAbilityInput"><option value="">无</option><option>STR</option><option>DEX</option><option>CON</option><option>INT</option><option>WIS</option><option>CHA</option></select></label>
+          <label>STR<input id="unitStrInput" type="number" min="1" max="30"></label>
+          <label>DEX<input id="unitDexInput" type="number" min="1" max="30"></label>
+          <label>CON<input id="unitConInput" type="number" min="1" max="30"></label>
+          <label>INT<input id="unitIntInput" type="number" min="1" max="30"></label>
+          <label>WIS<input id="unitWisInput" type="number" min="1" max="30"></label>
+          <label>CHA<input id="unitChaInput" type="number" min="1" max="30"></label>
+          <label>技能 IDs<input id="unitSkillsInput" placeholder="逗号分隔，例如 power_attack,aimed_shot"></label>
+          <label>法术 IDs<input id="unitSpellsInput" placeholder="逗号分隔"></label>
+          <label>职业特性 IDs<input id="unitFeaturesInput" placeholder="逗号分隔"></label>
+        </div>
+        <div class="debug-toolbar unit-editor-actions">
+          <button id="applyUnitBtn">应用到当前单位</button>
+          <button id="duplicateUnitBtn">复制为新单位</button>
+          <button id="deleteUnitBtn">删除单位</button>
+          <button id="saveLocalBtn">保存到浏览器</button>
+          <button id="validateBtn">校验数据</button>
+        </div>
+        <h2>导入 / 导出</h2>
+        <div class="debug-toolbar">
+          <input type="file" id="importUnitsFile" accept="application/json,.json" />
+          <button id="importUnitsBtn">导入 units.json</button>
+          <button id="copyUnitsBtn">复制 units.json</button>
+          <button id="downloadUnitsBtn">下载 units.json</button>
+          <button id="copyProjectBtn">复制完整数据包</button>
+          <button id="downloadProjectBtn">下载完整数据包</button>
+        </div>
+        <textarea class="debug-output tall" id="unitEditorOutput" spellcheck="false"></textarea>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="./src/unitEditorMain.js"></script>
+</body>
+</html>

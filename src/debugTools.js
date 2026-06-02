@@ -35,11 +35,14 @@ export class DebugTools {
     this.infoEl = document.getElementById("debugInfo");
     this.outputEl = document.getElementById("debugOutput");
     this.bindElements();
+    this.editMode = Boolean(this.editModeEl?.checked);
     this.patchBattleRender();
     this.bindEditorCanvas();
     this.syncOverlayOptions();
     this.refreshUnitSelectors();
+    this.refreshUnitCatalog();
     this.loadUnitIntoForm(this.battle.currentUnit?.id || INITIAL_UNITS[0]?.id);
+    this.refreshUnitCatalog();
     this.update();
   }
 
@@ -94,7 +97,8 @@ export class DebugTools {
     });
     document.getElementById("dbgDownloadUnits")?.addEventListener("click", () => this.downloadUnitsJson());
 
-    document.getElementById("dbgRefresh")?.addEventListener("click", () => { this.refreshUnitSelectors(); this.update(); });
+    document.getElementById("dbgRefresh")?.addEventListener("click", () => { this.refreshUnitSelectors(); this.refreshUnitCatalog(); this.update(); });
+    document.getElementById("unitDataCatalog")?.addEventListener("click", event => this.handleCatalogClick(event));
     document.getElementById("dbgCopyLevel")?.addEventListener("click", async () => {
       const json = this.exportCurrentLevelJson();
       this.outputEl.value = json;
@@ -195,6 +199,7 @@ export class DebugTools {
     else this.battle.resetGame();
     this.battle.uiManager.log(`已放置 ${unitConfig.name} 出生点：(${tile.x}, ${tile.y})。`, unitConfig.team);
     this.refreshUnitSelectors();
+    this.refreshUnitCatalog();
     this.battle.render();
     event.stopImmediatePropagation(); event.preventDefault();
   }
@@ -211,6 +216,39 @@ export class DebugTools {
     this.battle.uiManager.log(`已删除 ${cfg?.name || unitId} 出生点，并从本关参战单位移除。`, "system");
     this.battle.resetGame();
     this.refreshUnitSelectors();
+    this.refreshUnitCatalog();
+  }
+
+  handleCatalogClick(event) {
+    const card = event.target.closest?.("[data-unit-id]");
+    if (!card) return;
+    const unitId = card.dataset.unitId;
+    const unit = INITIAL_UNITS.find(u => u.id === unitId);
+    if (!unit) return;
+    this.editMode = true;
+    this.editKind = unit.team === TEAM.ENEMY ? "enemySpawn" : "playerSpawn";
+    this.selectedSpawnUnitId = unit.id;
+    if (this.editModeEl) this.editModeEl.checked = true;
+    if (this.editKindEl) this.editKindEl.value = this.editKind;
+    this.refreshUnitSelectors();
+    this.refreshUnitCatalog();
+    this.battle.uiManager.log(`已选择 ${unit.name}，请点击棋盘放置出生点。`, unit.team);
+    this.update();
+  }
+
+  refreshUnitCatalog() {
+    const el = document.getElementById("unitDataCatalog");
+    if (!el) return;
+    const level = getCurrentLevel();
+    const active = new Set(Object.keys(level?.spawns || {}));
+    el.innerHTML = INITIAL_UNITS.map(unit => {
+      const selected = unit.id === this.selectedSpawnUnitId;
+      const inScene = active.has(unit.id);
+      return `<button class="unit-data-card ${unit.team} ${selected ? "selected" : ""}" data-unit-id="${unit.id}">
+        <img src="${unit.avatar || ""}" alt="">
+        <span><strong>${unit.name}</strong><small>${unit.id} · ${unit.team} · ${unit.className || unit.classId || "unit"}</small><small>HP ${unit.maxHp} · AC ${unit.ac} · ${inScene ? "已在场景" : "点击添加"}</small></span>
+      </button>`;
+    }).join("");
   }
 
   refreshUnitSelectors() {
@@ -236,7 +274,7 @@ export class DebugTools {
 
   loadUnitIntoForm(unitId) {
     const unit = this.getUnitForEdit(unitId);
-    if (!unit || !this.form.name) return;
+    if (!unit || !this.form?.name) return;
     this.selectedUnitId = unit.id;
     if (this.unitSelectEl) this.unitSelectEl.value = unit.id;
     this.form.name.value = unit.name || "";
@@ -255,6 +293,7 @@ export class DebugTools {
   }
 
   applyUnitForm() {
+    if (!this.form?.name) return;
     const unitId = this.unitSelectEl?.value || this.selectedUnitId;
     const unit = this.getUnitForEdit(unitId);
     if (!unit) return;
@@ -442,7 +481,9 @@ export class DebugTools {
     this.battle.uiManager.log("已读取浏览器本地保存，并重开当前关卡。", "system");
     this.battle.resetGame();
     this.refreshUnitSelectors();
+    this.refreshUnitCatalog();
     this.loadUnitIntoForm(this.battle.currentUnit?.id || INITIAL_UNITS[0]?.id);
+    this.refreshUnitCatalog();
     this.update();
   }
 

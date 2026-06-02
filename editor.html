@@ -3,43 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DND 战棋战斗 Demo v18.2 编辑器</title>
+  <title>DND 战棋战斗 Demo v18.2.5 关卡编辑器</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
-  <div class="app">
+  <div class="app level-editor-page">
     <div class="board-wrap">
       <div id="turnBanner" class="turn-banner"></div>
       <canvas id="battleCanvas" width="640" height="640"></canvas>
       <div id="tooltip" class="tooltip hidden"></div>
     </div>
     <aside class="panel">
-      <h1>DND 2D 战棋 Demo v18.2 编辑器</h1><div class="top-links"><a href="./index.html">进入游玩界面</a></div>
-      <div class="hint">v18.2 编辑器：与游玩界面分离，支持本地保存、JSON 导入、数据校验和完整数据包导出。</div>
+      <h1>DND 关卡编辑器 v18.2.5</h1>
+      <div class="top-links">
+        <a href="./index.html">进入游玩界面</a>
+        <a href="./unit-editor.html">单位编辑器</a>
+      </div>
+      <div class="hint">关卡编辑器只负责地图、地形和出生点。左侧“已编辑单位数据列表”点击单位后，再点击棋盘即可添加到场景。</div>
       <div class="level-info" id="levelInfo"></div>
       <div class="status" id="status"></div>
-      <div class="actions">
-        <button id="moveBtn">移动模式</button>
-        <button id="attackBtn">攻击模式</button>
-        <button id="skillBtn">技能模式</button>
-        <button id="defendBtn">防御动作</button>
-        <button id="endTurnBtn">结束回合</button>
-        <button id="restartBtn">重新开始</button>
-        <button id="nextLevelBtn">下一关</button>
-      </div>
-      <h2>行动确认</h2><div class="confirm-panel" id="confirmPanel"></div>
-      <h2>技能</h2><div class="skill-list" id="skillList"></div>
-      <h2>先攻顺序</h2><div class="initiative-list" id="initiativeList"></div>
-      <h2>单位</h2><div class="unit-list" id="unitList"></div>
-      <h2>战斗日志</h2><div class="log" id="log"></div>
+
       <details class="debug-panel" open>
-        <summary>Debug / 地图与数据编辑器</summary>
+        <summary>关卡编辑工具</summary>
         <div class="debug-toolbar">
           <label><input type="checkbox" id="dbgCoords" checked>坐标</label>
           <label><input type="checkbox" id="dbgTerrain" checked>地形ID</label>
           <label><input type="checkbox" id="dbgMoveCost">移动成本</label>
           <label><input type="checkbox" id="dbgReachable">可达格</label>
-          <label><input type="checkbox" id="dbgEditMode">启用编辑</label>
+          <label><input type="checkbox" id="dbgEditMode" checked>启用编辑</label>
         </div>
         <div class="debug-toolbar">
           <label>编辑模式
@@ -59,41 +50,18 @@
               <option value="5">目标区域</option>
             </select>
           </label>
-          <label>出生单位
+          <label>当前待放置单位
             <select id="dbgSpawnUnitSelect"></select>
           </label>
-          <button id="dbgRefresh">刷新 Debug</button>
+          <button id="dbgRefresh">刷新</button>
         </div>
-        <div class="debug-toolbar">
-          <label>编辑单位
-            <select id="dbgUnitSelect"></select>
-          </label>
-          <button id="dbgLoadUnit">读取单位</button>
-          <button id="dbgApplyUnit">应用属性</button>
-          <button id="dbgCopyUnits">复制单位 JSON</button>
-          <button id="dbgDownloadUnits">下载单位 JSON</button>
-        </div>
-        <div class="unit-editor-grid">
-          <label>名称<input id="unitNameInput"></label>
-          <label>阵营<select id="unitTeamInput"><option value="player">player</option><option value="enemy">enemy</option></select></label>
-          <label>职业/类型<input id="unitClassInput"></label>
-          <label>等级<input id="unitLevelInput" type="number" min="1" max="20"></label>
-          <label>HP<input id="unitHpInput" type="number" min="0"></label>
-          <label>Max HP<input id="unitMaxHpInput" type="number" min="1"></label>
-          <label>AC<input id="unitAcInput" type="number" min="1"></label>
-          <label>移动<input id="unitMoveInput" type="number" min="0"></label>
-          <label>熟练<input id="unitProfInput" type="number" min="0"></label>
-          <label>伤害骰<input id="unitDamageDiceInput"></label>
-          <label>攻击属性<select id="unitAttackAbilityInput"><option>STR</option><option>DEX</option><option>CON</option><option>INT</option><option>WIS</option><option>CHA</option></select></label>
-          <label>伤害属性<select id="unitDamageAbilityInput"><option>STR</option><option>DEX</option><option>CON</option><option>INT</option><option>WIS</option><option>CHA</option></select></label>
-          <label>STR<input id="unitStrInput" type="number" min="1" max="30"></label>
-          <label>DEX<input id="unitDexInput" type="number" min="1" max="30"></label>
-          <label>CON<input id="unitConInput" type="number" min="1" max="30"></label>
-          <label>INT<input id="unitIntInput" type="number" min="1" max="30"></label>
-          <label>WIS<input id="unitWisInput" type="number" min="1" max="30"></label>
-          <label>CHA<input id="unitChaInput" type="number" min="1" max="30"></label>
-        </div>
-        <p class="debug-note">出生点编辑：勾选“启用编辑”，选择玩家/敌人出生点模式，再点击棋盘放置。右键棋盘上的出生点可删除。单位属性编辑为运行时编辑，可通过本地保存或导出 JSON 持久化。</p>
+
+        <h2>已编辑单位数据列表</h2>
+        <div class="hint small-hint">点击单位卡片进入放置模式；蓝色为玩家出生点，红色为敌人出生点。右键棋盘出生点可删除。</div>
+        <div id="unitDataCatalog" class="unit-data-catalog"></div>
+
+        <p class="debug-note">操作：选择地形后点击棋盘可绘制地形；点击单位卡片后点击棋盘可添加该单位出生点；右键出生点可删除。单位属性请到“单位编辑器”修改。</p>
+
         <h2>导入 / 保存 / 校验</h2>
         <div class="debug-toolbar">
           <button id="dbgSaveLocal">保存到浏览器</button>
@@ -125,6 +93,10 @@
         <textarea class="debug-output" id="debugOutput" spellcheck="false"></textarea>
       </details>
 
+      <div style="display:none">
+        <button id="moveBtn">移动模式</button><button id="attackBtn">攻击模式</button><button id="skillBtn">技能模式</button><button id="defendBtn">防御动作</button><button id="endTurnBtn">结束回合</button><button id="restartBtn">重新开始</button><button id="nextLevelBtn">下一关</button>
+        <div id="confirmPanel"></div><div id="skillList"></div><div id="initiativeList"></div><div id="unitList"></div><div id="log"></div>
+      </div>
     </aside>
   </div>
   <script type="module" src="./src/editorMain.js"></script>
