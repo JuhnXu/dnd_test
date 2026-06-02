@@ -12,6 +12,27 @@ import {
 const ABILITIES = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
 let selectedUnitId = null;
 
+const TOKEN_OPTIONS = [
+  ["fighter", "人类战士"],
+  ["elf_ranger", "精灵游侠"],
+  ["dwarf_warrior", "矮人战士"],
+  ["human_cleric", "人类牧师"],
+  ["drow_warlock", "卓尔术士"],
+  ["tiefling_fighter", "提夫林战士"],
+  ["dragonborn_paladin", "龙裔圣武士"],
+  ["halfling_rogue", "半身人盗贼"],
+  ["tiefling_mage", "提夫林法师"],
+  ["hooded_rogue", "兜帽盗贼"],
+  ["red_dragon", "红龙"],
+  ["beholder", "眼魔"],
+  ["vampire", "吸血鬼"],
+  ["orc", "兽人"],
+  ["skeleton", "骷髅兵"],
+  ["wraith", "幽魂"],
+  ["mind_flayer", "夺心魔"],
+  ["owlbear", "枭熊"],
+];
+
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function toInt(value, fallback) {
   const n = Number.parseInt(value, 10);
@@ -76,6 +97,23 @@ function bindFormRefs() {
   for (const [key, id] of Object.entries(ids)) form[key] = document.getElementById(id);
 }
 
+
+function renderTokenGallery() {
+  const gallery = document.getElementById("tokenGallery");
+  if (!gallery) return;
+  const currentAvatar = form.avatar?.value || "";
+  gallery.innerHTML = TOKEN_OPTIONS.map(([id, label]) => {
+    const path = `./assets/tokens/${id}.png`;
+    const selected = currentAvatar === path ? "selected" : "";
+    return `
+      <button class="token-choice ${selected}" data-avatar="${path}" title="${label}">
+        <img src="${path}" alt="${label}">
+        <span>${label}</span>
+      </button>
+    `;
+  }).join("");
+}
+
 function renderCatalog() {
   const catalog = document.getElementById("unitCatalog");
   if (!catalog) return;
@@ -115,6 +153,7 @@ function loadUnit(unitId) {
   form.classFeatures.value = inputFromList(unit.classFeatures);
   for (const ability of ABILITIES) form[ability].value = unit.abilities?.[ability] ?? 10;
   renderCatalog();
+  renderTokenGallery();
   output({ selected: unit });
 }
 
@@ -149,6 +188,7 @@ function applyForm({ allowIdChange = true } = {}) {
   unit.abilities = unit.abilities || {};
   for (const ability of ABILITIES) unit.abilities[ability] = Math.max(1, Math.min(30, toInt(form[ability].value, unit.abilities[ability] || 10)));
   renderCatalog();
+  renderTokenGallery();
   output(`已应用 ${unit.name}。点击“保存到浏览器”后，游玩界面和关卡编辑器会使用新数据。`);
 }
 
@@ -179,6 +219,7 @@ function deleteUnit() {
   if (index >= 0) INITIAL_UNITS.splice(index, 1);
   selectedUnitId = INITIAL_UNITS[0]?.id || null;
   renderCatalog();
+  renderTokenGallery();
   if (selectedUnitId) loadUnit(selectedUnitId);
   else output("已删除，当前没有单位。请新增单位。");
 }
@@ -189,12 +230,21 @@ async function init() {
   bindFormRefs();
   selectedUnitId = INITIAL_UNITS[0]?.id || null;
   renderCatalog();
+  renderTokenGallery();
   if (selectedUnitId) loadUnit(selectedUnitId);
 
   document.getElementById("unitCatalog")?.addEventListener("click", event => {
     const card = event.target.closest?.("[data-unit-id]");
     if (card) loadUnit(card.dataset.unitId);
   });
+  document.getElementById("tokenGallery")?.addEventListener("click", event => {
+    const choice = event.target.closest?.("[data-avatar]");
+    if (!choice) return;
+    form.avatar.value = choice.dataset.avatar;
+    renderTokenGallery();
+    output(`已选择头像：${choice.dataset.avatar}。点击“应用到当前单位”或“保存到浏览器”生效。`);
+  });
+  form.avatar?.addEventListener("input", renderTokenGallery);
   document.getElementById("newUnitBtn")?.addEventListener("click", newUnit);
   document.getElementById("applyUnitBtn")?.addEventListener("click", () => applyForm());
   document.getElementById("duplicateUnitBtn")?.addEventListener("click", duplicateUnit);

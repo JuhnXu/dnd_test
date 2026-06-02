@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DND 战棋战斗 Demo v18.2.5 单位编辑器</title>
+  <title>DND 战棋战斗 Demo v18.2.6 单位编辑器</title>
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>
   <div class="unit-editor-page app-wide">
     <header class="editor-header">
       <div>
-        <h1>DND 单位编辑器 v18.2.5</h1>
+        <h1>DND 单位编辑器 v18.2.6</h1>
         <p>独立编辑玩家、怪物和 NPC 数据。保存到浏览器后，关卡编辑器和游玩界面都会读取这些单位数据。</p>
       </div>
       <nav class="top-links">
@@ -52,6 +52,10 @@
           <label>法术 IDs<input id="unitSpellsInput" placeholder="逗号分隔"></label>
           <label>职业特性 IDs<input id="unitFeaturesInput" placeholder="逗号分隔"></label>
         </div>
+
+        <h2>头像库</h2>
+        <p class="editor-note">点击头像即可填入头像路径。当前头像已重新从原图居中切割为 256×256 Token。</p>
+        <div id="tokenGallery" class="token-gallery"></div>
         <div class="debug-toolbar unit-editor-actions">
           <button id="applyUnitBtn">应用到当前单位</button>
           <button id="duplicateUnitBtn">复制为新单位</button>

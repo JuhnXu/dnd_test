@@ -601,3 +601,55 @@ body.play-page {
   .unit-editor-sidebar { position: static; max-height: none; }
   .unit-editor-grid.large { grid-template-columns: 1fr; }
 }
+
+/* v18.2.6 token gallery */
+.editor-note {
+  margin: 0 0 10px;
+  color: #6b7280;
+  font-size: 13px;
+}
+.token-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 10px;
+  max-height: 310px;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f8fafc;
+  margin-bottom: 14px;
+}
+.token-choice {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 12px;
+  padding: 8px 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 112px;
+  color: #111827;
+}
+.token-choice:hover {
+  border-color: #14b8a6;
+  box-shadow: 0 8px 18px rgba(20, 184, 166, .16);
+}
+.token-choice.selected {
+  border-color: #0f766e;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, .18);
+}
+.token-choice img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #111827;
+}
+.token-choice span {
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+}
